@@ -1,0 +1,57 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exams     Exam[]
+  invoices  Invoice[]
+}
+
+model Exam {
+  id          String   @id @default(uuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // قياسات العين اليمنى (Right Eye - OD)
+  rightSph    Float?
+  rightCyl    Float?
+  rightAxis   Int?
+  rightAdd    Float?
+
+  // قياسات العين اليسرى (Left Eye - OS)
+  leftSph     Float?
+  leftCyl     Float?
+  leftAxis    Int?
+  leftAdd     Float?
+
+  pd          Float?   // مسافة بين الحدقتين (Pupillary Distance)
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  customerId  String
+  customer    Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  totalAmount Float
+  paidAmount  Float         @default(0)
+  status      String        @default("PENDING") // PENDING, PAID, CANCELLED
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}

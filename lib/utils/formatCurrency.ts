@@ -1,0 +1,3 @@
+export function formatCurrency(value: number, currency = 'ر.ي') {
+  return `${new Intl.NumberFormat('ar-YE', { maximumFractionDigits: 2 }).format(value || 0)} ${currency}`
+}
