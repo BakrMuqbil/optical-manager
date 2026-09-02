@@ -24,6 +24,9 @@ jobs:
 
       - name: Build Electron App
         run: npm run electron:build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload Windows Executable (.exe)
         uses: actions/upload-artifact@v4
