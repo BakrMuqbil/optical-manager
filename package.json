@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "electron:dev": "concurrently \"next dev --webpack\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "next build --webpack && electron-builder --win"
+      "electron:build": "next build --webpack --experimental-build-cpus=1 && electron-builder --win"
   },
   "build": {
     "appId": "com.optical.manager",
