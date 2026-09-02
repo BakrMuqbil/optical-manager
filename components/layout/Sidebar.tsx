@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, ClipboardList, Settings, Menu, X, PlusCircle } from "lucide-react";
+import { Home, ClipboardList, Settings, Menu, X, PlusCircle } from "lucide-react";
 import { useState } from "react";
 
 const links = [
