@@ -1,1 +1,0 @@
-import {NextResponse} from 'next/server';import {db} from '@/lib/db';export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){const {id}=await params;return NextResponse.json({success:true,data:db.prepare('SELECT * FROM invoices WHERE customer_id=? ORDER BY invoice_date DESC,created_at DESC').all(id)})}

@@ -2,14 +2,40 @@
   "name": "optical-manager",
   "version": "0.1.0",
   "private": true,
-   "main": "electron/main.js",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
-    "electron:dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "next build && electron-builder --win"
+    "lint": "eslint .",
+    "electron:dev": "concurrently \"next dev --webpack\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "next build --webpack && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.optical.manager",
+    "productName": "المركز الأردني للنظارات",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      ".next/**/*",
+      "electron/**/*",
+      "public/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*"
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "public/logo1.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

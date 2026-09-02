@@ -173,8 +173,7 @@ export default function Page() {
           <h2 className="text-lg font-black">النسخ الاحتياطي</h2>
 
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            احفظ نسخة JSON من العملاء والفحوصات والفواتير والإعدادات في مكان
-            آمن.
+            احفظ نسخة JSON من العملاء والفواتير والإعدادات في مكان آمن.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">

@@ -1,6 +1,15 @@
-import type { Invoice, InvoiceItem, Settings } from "@/types/app";
+import type { Invoice, Settings } from "@/types/app";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDate } from "@/lib/utils/formatDate";
+
+export interface InvoiceItem {
+  id?: number | string;
+  invoice_id?: number | string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
 
 type PrintableInvoice = Invoice & {
   exam_date?: string | null;
@@ -18,27 +27,27 @@ type PrintableInvoice = Invoice & {
 
 interface InvoicePrintProps {
   invoice: PrintableInvoice;
-  items: InvoiceItem[];
+  items?: InvoiceItem[];
   settings: Settings;
 }
 
-export function InvoicePrint({ invoice, items, settings }: InvoicePrintProps) {
+export function InvoicePrint({
+  invoice,
+  items = [],
+  settings,
+}: InvoicePrintProps) {
   const currency = settings.currency || "ر.ي";
 
-  // استخراج تفاصيل الإطار والعدسات من البنود أو الملاحظات
   const frameItem =
-    items.find(
-      (it) =>
-        it.description.includes("إطار") || it.description.includes("نظارة"),
-    )?.description || "—";
+    items.find((it) => /إطار|نظارة|frame/i.test(it.description))?.description ||
+    "—";
   const lensItem =
-    items.find((it) => it.description.includes("عدس"))?.description || "—";
+    items.find((it) => /عدس|lens/i.test(it.description))?.description || "—";
 
   return (
-    <div className="mx-auto max-w-[80mm] bg-white p-3 text-black text-xs font-sans print:w-full print:p-0 print:m-0">
+    <div className="mx-auto w-[80mm] max-w-full bg-white p-3 text-black text-xs font-sans">
       {/* الهيدر: اسم المحل، اللوجو، والبيانات الإنجليزية */}
       <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-3 text-xs dir-rtl">
-        {/* الجهة اليمنى: البيانات بالعربي */}
         <div className="text-right w-1/3">
           <h1 className="text-base font-black leading-tight">
             {settings.shop_name || "المركز الأردني للنظارات"}
@@ -53,22 +62,18 @@ export function InvoicePrint({ invoice, items, settings }: InvoicePrintProps) {
           )}
         </div>
 
-        {/* المنتصف: رمز اللوجو / الشعار */}
         <div className="w-1/3 flex justify-center items-center">
           <img
             src="/logo1.png"
             alt="Logo"
             className="h-14 w-auto object-contain"
             onError={(e) => {
-              // إخفاء الصورة في حال عدم وجود الملف داخل مجلد public دون إظهار أي بديل
               e.currentTarget.style.display = "none";
             }}
           />
         </div>
 
-        {/* الجهة اليسرى: البيانات بالإنجليزي وأرقام الفاتورة والفحص */}
         <div className="text-left w-1/3 dir-ltr">
-          {" "}
           <h2 className="text-xs font-black uppercase tracking-wider">
             Jordanian Glasses
           </h2>
@@ -96,72 +101,68 @@ export function InvoicePrint({ invoice, items, settings }: InvoicePrintProps) {
           <span className="font-normal">
             {formatDate(invoice.invoice_date)}
           </span>
-        </div>{" "}
+        </div>
       </div>
 
-      {/* جدول فحص النظر المطابق تماماً للنموذج */}
+      {/* جدول فحص النظر */}
       <div className="border-2 border-black mb-3 text-center">
         <table className="w-full border-collapse text-[11px] font-bold">
           <thead>
-            {/* الصف الأول: RIGHT ثم LEFT */}
             <tr className="border-b-2 border-black">
               <th className="w-1/4 border-l-2 border-black"></th>
               <th
                 colSpan={3}
                 className="border-l-2 border-black py-1 text-center bg-gray-50"
               >
-                RIGHT
-              </th>
-              <th colSpan={3} className="py-1 text-center bg-gray-50">
                 LEFT
               </th>
+              <th colSpan={3} className="py-1 text-center bg-gray-50">
+                RIGHT
+              </th>
             </tr>
-            {/* الصف الثاني: أسماء القياسات */}
             <tr className="border-b-2 border-black text-[10px]">
               <th className="border-l-2 border-black"></th>
-              <th className="w-[12.5%] border-l border-black py-0.5">SPH</th>
+              <th className="w-[12.5%] border-l border-black py-0.5">AXIS</th>
               <th className="w-[12.5%] border-l border-black py-0.5">CYL</th>
-              <th className="w-[12.5%] border-l-2 border-black py-0.5">AXIS</th>
-              <th className="w-[12.5%] border-l border-black py-0.5">SPH</th>
+              <th className="w-[12.5%] border-l-2 border-black py-0.5">SPH</th>
+              <th className="w-[12.5%] border-l border-black py-0.5">AXIS</th>
               <th className="w-[12.5%] border-l border-black py-0.5">CYL</th>
-              <th className="w-[12.5%] py-0.5">AXIS</th>
+              <th className="w-[12.5%] py-0.5">SPH</th>
             </tr>
           </thead>
           <tbody>
-            {/* صف DISTANCE (المسافة/البعد) */}
             <tr className="border-b border-black">
               <td className="border-l-2 border-black py-1 font-bold text-left px-1">
                 DISTANCE
               </td>
               <td className="border-l border-black dir-ltr">
-                {invoice.od_sph ?? "—"}
-              </td>
-              <td className="border-l border-black dir-ltr">
-                {invoice.od_cyl ?? "—"}
-              </td>
-              <td className="border-l-2 border-black dir-ltr">
-                {invoice.od_axis ?? "—"}
-              </td>
-              <td className="border-l border-black dir-ltr">
-                {invoice.os_sph ?? "—"}
+                {invoice.os_axis ?? "—"}
               </td>
               <td className="border-l border-black dir-ltr">
                 {invoice.os_cyl ?? "—"}
               </td>
-              <td className="dir-ltr">{invoice.os_axis ?? "—"}</td>
+              <td className="border-l-2 border-black dir-ltr">
+                {invoice.os_sph ?? "—"}
+              </td>
+              <td className="border-l border-black dir-ltr">
+                {invoice.od_axis ?? "—"}
+              </td>
+              <td className="border-l border-black dir-ltr">
+                {invoice.od_cyl ?? "—"}
+              </td>
+              <td className="dir-ltr">{invoice.od_sph ?? "—"}</td>
             </tr>
-            {/* صف READING (القراءة/القريب) */}
             <tr className="border-b-2 border-black">
               <td className="border-l-2 border-black py-1 font-bold text-left px-1">
                 READING
               </td>
               <td className="border-l border-black dir-ltr">
-                {invoice.od_add ? `+${invoice.od_add}` : "—"}
+                {invoice.os_add ? `+${invoice.os_add}` : "—"}
               </td>
               <td className="border-l border-black dir-ltr">—</td>
               <td className="border-l-2 border-black dir-ltr">—</td>
               <td className="border-l border-black dir-ltr">
-                {invoice.os_add ? `+${invoice.os_add}` : "—"}
+                {invoice.od_add ? `+${invoice.od_add}` : "—"}
               </td>
               <td className="border-l border-black dir-ltr">—</td>
               <td className="dir-ltr">—</td>
@@ -180,7 +181,7 @@ export function InvoicePrint({ invoice, items, settings }: InvoicePrintProps) {
       <div className="space-y-1.5 text-xs border-b-2 border-black pb-2 mb-2">
         <div className="flex justify-between items-center">
           <span className="font-bold">
-            الإطار : <span className="font-normal">{frameItem}</span>
+            الإطار : <span className="font-normal">{invoice.notes || "—"}</span>
           </span>
           <span className="font-bold">: Frame </span>
         </div>
@@ -192,8 +193,7 @@ export function InvoicePrint({ invoice, items, settings }: InvoicePrintProps) {
         </div>
         <div className="flex justify-between items-center">
           <span className="font-bold">
-            موعد التسليم :{" "}
-            <span className="font-normal">{invoice.notes || "—"}</span>
+            موعد التسليم : <span className="font-normal">{frameItem}</span>
           </span>
           <span className="font-bold">: Date </span>
         </div>

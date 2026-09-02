@@ -4,7 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 
 export const metadata: Metadata = {
   title: 'Optical Manager',
-  description: 'إدارة عملاء وفحوصات وفواتير محل البصريات',
+  description: 'إدارة الفواتير ومحل البصريات',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

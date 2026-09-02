@@ -1,184 +1,142 @@
 import { NextResponse } from "next/server";
 import {
   db,
+  nextCustomerNumber,
   nextInvoiceNumber,
   normalizeMoney,
+  normalizeOptionalInt,
+  normalizeOptionalNumber,
   uid,
 } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
-  const q = new URL(req.url).searchParams.get("q")?.trim() || "";
-  const like = `%${q}%`;
-
-  const rows = db
-    .prepare(
-      `SELECT i.*, c.name customer_name, c.phone customer_phone,
-              c.customer_number, e.exam_number
-       FROM invoices i
-       JOIN customers c ON c.id=i.customer_id
-       LEFT JOIN exams e ON e.id=i.exam_id
-       WHERE (?='' OR i.invoice_number LIKE ? OR c.name LIKE ? OR c.phone LIKE ? OR e.exam_number LIKE ?)
-       ORDER BY i.invoice_date DESC, i.created_at DESC`,
-    )
-    .all(q, like, like, like, like);
-
-  return NextResponse.json({ success: true, data: rows });
+function invoiceSelect() {
+  return `SELECT i.*, c.name customer_name, c.phone customer_phone,
+    c.address customer_address, c.customer_number
+    FROM invoices i JOIN customers c ON c.id=i.customer_id`;
 }
 
-type RawItem = {
-  description?: string;
-  quantity?: number | string;
-  unitPrice?: number | string;
+export async function GET(req: Request) {
+  const params = new URL(req.url).searchParams;
+  const q = params.get("q")?.trim() || "";
+  const status = params.get("status")?.trim() || "";
+  const statusSql = status === "DUE" ? "(i.status IN ('UNPAID','PARTIALLY_PAID'))" : "(?='' OR i.status=?)";
+  const from = params.get("from")?.trim() || "";
+  const to = params.get("to")?.trim() || "";
+  const like = `%${q}%`;
+
+  const rows = db.prepare(`${invoiceSelect()}
+    WHERE (?='' OR i.invoice_number LIKE ? OR c.name LIKE ? OR c.phone LIKE ?)
+      AND ${statusSql}
+      AND (?='' OR i.invoice_date>=?)
+      AND (?='' OR i.invoice_date<=?)
+    ORDER BY i.invoice_date DESC, i.created_at DESC`)
+    .all(...(status === "DUE" ? [q,like,like,like] : [q,like,like,like,status,status]), from, from, to, to);
+
+  const summary = db.prepare(`SELECT
+      COUNT(*) count,
+      COALESCE(SUM(i.total),0) total,
+      COALESCE(SUM(i.paid),0) paid,
+      COALESCE(SUM(i.remaining),0) remaining
+    FROM invoices i JOIN customers c ON c.id=i.customer_id
+    WHERE (?='' OR i.invoice_number LIKE ? OR c.name LIKE ? OR c.phone LIKE ?)
+      AND ${statusSql}
+      AND (?='' OR i.invoice_date>=?)
+      AND (?='' OR i.invoice_date<=?)`)
+    .get(...(status === "DUE" ? [q,like,like,like] : [q,like,like,like,status,status]), from, from, to, to) as {
+      count: number; total: number; paid: number; remaining: number;
+    };
+
+  return NextResponse.json({ success: true, data: rows, summary });
+}
+
+type InvoiceBody = {
+  customerName?: string;
+  customerPhone?: string;
+  invoiceDate?: string;
+  examDate?: string;
+  examiner?: string;
+  odSph?: unknown; odCyl?: unknown; odAxis?: unknown; odAdd?: unknown;
+  osSph?: unknown; osCyl?: unknown; osAxis?: unknown; osAdd?: unknown;
+  pd?: unknown; nearPd?: unknown;
+  price?: unknown;
+  discount?: unknown;
+  paid?: unknown;
+  notes?: string;
 };
 
-function cleanItems(input: unknown) {
-  const items = Array.isArray(input) ? (input as RawItem[]) : [];
+function cleanBody(b: InvoiceBody) {
+  const price = normalizeMoney(b.price);
+  const discount = Math.min(normalizeMoney(b.discount), price);
+  const total = normalizeMoney(price - discount);
+  const paid = Math.min(normalizeMoney(b.paid), total);
+  const remaining = normalizeMoney(total - paid);
+  return {
+    customerName: String(b.customerName ?? "").trim(),
+    customerPhone: String(b.customerPhone ?? "").trim(),
+    invoiceDate: String(b.invoiceDate ?? "").trim() || new Date().toISOString().slice(0, 10),
+    examDate: String(b.examDate ?? "").trim() || null,
+    examiner: String(b.examiner ?? "").trim() || null,
+    odSph: normalizeOptionalNumber(b.odSph), odCyl: normalizeOptionalNumber(b.odCyl), odAxis: normalizeOptionalInt(b.odAxis), odAdd: normalizeOptionalNumber(b.odAdd),
+    osSph: normalizeOptionalNumber(b.osSph), osCyl: normalizeOptionalNumber(b.osCyl), osAxis: normalizeOptionalInt(b.osAxis), osAdd: normalizeOptionalNumber(b.osAdd),
+    pd: normalizeOptionalNumber(b.pd), nearPd: normalizeOptionalNumber(b.nearPd),
+    price, discount, total, paid, remaining,
+    status: remaining === 0 ? "PAID" : paid > 0 ? "PARTIALLY_PAID" : "UNPAID",
+    notes: String(b.notes ?? "").trim() || null,
+  };
+}
 
-  return items.map((x) => {
-    const description = String(x.description ?? "").trim();
-    const quantity = Number(x.quantity);
-    const unitPrice = normalizeMoney(x.unitPrice);
+function getOrCreateCustomer(name: string, phone: string) {
+  const existing = phone
+    ? db.prepare("SELECT id FROM customers WHERE phone=? AND status='ACTIVE' ORDER BY created_at DESC LIMIT 1").get(phone) as { id: string } | undefined
+    : undefined;
 
-    return {
-      description,
-      quantity,
-      unitPrice,
-      total: normalizeMoney(quantity * unitPrice),
-    };
-  });
+  const now = new Date().toISOString();
+  if (existing) {
+    db.prepare("UPDATE customers SET name=?, updated_at=? WHERE id=?").run(name, now, existing.id);
+    return existing.id;
+  }
+
+  const id = uid("cust");
+  db.prepare(`INSERT INTO customers
+    (id,customer_number,name,phone,status,created_at,updated_at)
+    VALUES (?,?,?,?,?,?,?)`).run(id, nextCustomerNumber(), name, phone || null, "ACTIVE", now, now);
+  return id;
 }
 
 export async function POST(req: Request) {
   try {
-    const b = await req.json();
-    const customerId = String(b.customerId || "");
-
-    const customer = db
-      .prepare("SELECT id FROM customers WHERE id=? AND status='ACTIVE'")
-      .get(customerId);
-
-    if (!customer) {
-      return NextResponse.json(
-        { success: false, error: "العميل غير موجود" },
-        { status: 404 },
-      );
-    }
-
-    const clean = cleanItems(b.items);
-
-    if (!clean.length) {
-      return NextResponse.json(
-        { success: false, error: "أضف بندًا واحدًا على الأقل" },
-        { status: 400 },
-      );
-    }
-
-    if (
-      clean.some(
-        (x) =>
-          !x.description ||
-          !Number.isFinite(x.quantity) ||
-          x.quantity <= 0,
-      )
-    ) {
-      return NextResponse.json(
-        { success: false, error: "تحقق من بنود الفاتورة" },
-        { status: 400 },
-      );
-    }
-
-    const examId = String(b.examId || "");
-    if (examId) {
-      const exam = db
-        .prepare(
-          "SELECT id FROM exams WHERE id=? AND customer_id=?",
-        )
-        .get(examId, customerId);
-
-      if (!exam) {
-        return NextResponse.json(
-          { success: false, error: "الفحص المحدد لا يخص هذا العميل" },
-          { status: 400 },
-        );
-      }
-    }
-
-    const subtotal = normalizeMoney(
-      clean.reduce((sum: number, x) => sum + x.total, 0),
-    );
-    const discount = Math.min(normalizeMoney(b.discount), subtotal);
-    const total = normalizeMoney(subtotal - discount);
-    const paid = Math.min(normalizeMoney(b.paid), total);
-    const remaining = normalizeMoney(total - paid);
-
-    const status =
-      b.status === "CANCELLED"
-        ? "CANCELLED"
-        : remaining === 0
-          ? "PAID"
-          : paid > 0
-            ? "PARTIALLY_PAID"
-            : "UNPAID";
+    const b = await req.json() as InvoiceBody;
+    const clean = cleanBody(b);
+    if (!clean.customerName) return NextResponse.json({ success: false, error: "اسم العميل مطلوب" }, { status: 400 });
+    if (!clean.customerPhone) return NextResponse.json({ success: false, error: "رقم الجوال مطلوب" }, { status: 400 });
+    if (clean.price <= 0) return NextResponse.json({ success: false, error: "السعر يجب أن يكون أكبر من صفر" }, { status: 400 });
 
     const id = uid("inv");
     const invoiceNumber = nextInvoiceNumber();
-    const date =
-      b.invoiceDate || new Date().toISOString().slice(0, 10);
     const now = new Date().toISOString();
 
     const tx = db.transaction(() => {
-      db.prepare(
-        `INSERT INTO invoices
-        (id,invoice_number,customer_id,exam_id,invoice_date,subtotal,discount,total,paid,remaining,status,notes,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      ).run(
-        id,
-        invoiceNumber,
-        customerId,
-        examId || null,
-        date,
-        subtotal,
-        discount,
-        total,
-        paid,
-        remaining,
-        status,
-        String(b.notes ?? "").trim() || null,
-        now,
-        now,
+      const customerId = getOrCreateCustomer(clean.customerName, clean.customerPhone);
+      db.prepare(`INSERT INTO invoices
+        (id,invoice_number,customer_id,invoice_date,exam_date,
+         od_sph,od_cyl,od_axis,od_add,os_sph,os_cyl,os_axis,os_add,
+         pd,near_pd,examiner,exam_notes,subtotal,discount,total,paid,remaining,status,notes,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+        id, invoiceNumber, customerId, clean.invoiceDate, clean.examDate,
+        clean.odSph, clean.odCyl, clean.odAxis, clean.odAdd,
+        clean.osSph, clean.osCyl, clean.osAxis, clean.osAdd,
+        clean.pd, clean.nearPd, clean.examiner, clean.notes,
+        clean.price, clean.discount, clean.total, clean.paid, clean.remaining, clean.status, clean.notes, now, now,
       );
-
-      const stmt = db.prepare(
-        `INSERT INTO invoice_items
-        (id,invoice_id,description,quantity,unit_price,total)
-        VALUES (?,?,?,?,?,?)`,
-      );
-
-      for (const x of clean) {
-        stmt.run(
-          uid("item"),
-          id,
-          x.description,
-          x.quantity,
-          x.unitPrice,
-          x.total,
-        );
-      }
+      db.prepare(`INSERT INTO invoice_items (id,invoice_id,description,quantity,unit_price,total) VALUES (?,?,?,?,?,?)`)
+        .run(uid("item"), id, "الخدمة", 1, clean.price, clean.price);
     });
-
     tx();
-
-    return NextResponse.json(
-      { success: true, data: { id, invoiceNumber } },
-      { status: 201 },
-    );
+    return NextResponse.json({ success: true, data: { id, invoiceNumber } }, { status: 201 });
   } catch (e) {
     console.error(e);
-    return NextResponse.json(
-      { success: false, error: "تعذر إنشاء الفاتورة" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: "تعذر حفظ الفاتورة" }, { status: 500 });
   }
 }
