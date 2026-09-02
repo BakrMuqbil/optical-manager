@@ -212,10 +212,26 @@ function addColumn(
   column: string,
   definition: string,
 ) {
-  if (!hasColumn(table, column)) {
+  if (hasColumn(table, column)) {
+    return;
+  }
+
+  try {
     db.exec(
       `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`,
     );
+  } catch (error) {
+    // SQLite may report a duplicate column if another
+    // initialization path added it between the schema check
+    // and ALTER TABLE.
+    if (
+      error instanceof Error &&
+      error.message.includes("duplicate column name")
+    ) {
+      return;
+    }
+
+    throw error;
   }
 }
 
