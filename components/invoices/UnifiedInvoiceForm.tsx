@@ -164,23 +164,28 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
         className="space-y-5"
       >
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+          <div className="rounded-xl border border-[var(--danger)]/20 bg-[var(--danger-soft)] p-4 text-sm font-bold text-[var(--danger)]">
             {error}
           </div>
         )}
 
+        {/* 1. بيانات العميل */}
         <section className={section}>
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-black">1. بيانات العميل</h2>
-              <p className="mt-1 text-xs text-slate-400">
+              <h2 className="text-lg font-black text-[var(--text-primary)]">
+                1. بيانات العميل
+              </h2>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
                 يتم ربط العميل تلقائيًا برقم الجوال عند وجوده مسبقًا.
               </p>
             </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+
+            <span className="rounded-full border border-[var(--primary)]/15 bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary)]">
               الاسم + الجوال
             </span>
           </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <label>
               <span className="label">اسم العميل</span>
@@ -192,6 +197,7 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
                 placeholder="اكتب اسم العميل"
               />
             </label>
+
             <label>
               <span className="label">رقم الجوال</span>
               <input
@@ -207,14 +213,19 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
           </div>
         </section>
 
+        {/* 2. بيانات القياسات */}
         <section className={section}>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black">2. بيانات القياسات</h2>
-              <p className="mt-1 text-xs text-slate-400">
+              <h2 className="text-lg font-black text-[var(--text-primary)]">
+                2. بيانات القياسات
+              </h2>
+
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
                 القياسات تحفظ داخل الفاتورة نفسها، ولا يوجد سجل مستقل للفحص.
               </p>
             </div>
+
             <div className="flex gap-3">
               <label>
                 <span className="label">تاريخ الفاتورة</span>
@@ -225,6 +236,7 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
                   onChange={(e) => update("invoiceDate", e.target.value)}
                 />
               </label>
+
               <label>
                 <span className="label">تاريخ القياسات</span>
                 <input
@@ -236,6 +248,7 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
               </label>
             </div>
           </div>
+
           <div className="mb-5 grid gap-4 md:grid-cols-3">
             <label>
               <span className="label">الفاحص</span>
@@ -246,6 +259,7 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
                 placeholder="اسم الفاحص (اختياري)"
               />
             </label>
+
             <label>
               <span className="label">PD</span>
               <input
@@ -257,6 +271,7 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
                 placeholder="mm"
               />
             </label>
+
             <label>
               <span className="label">Near PD</span>
               <input
@@ -269,22 +284,31 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
               />
             </label>
           </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
+
+          <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <table className="w-full min-w-[720px] border-collapse text-center text-sm">
               <thead>
-                <tr className="bg-slate-900 text-white">
-                  <th className="border-l border-slate-700 p-3 text-right">
+                <tr className="bg-[var(--primary)] text-white">
+                  <th className="border-l border-white/15 p-3 text-right">
                     العين
                   </th>
-                  <th className="border-l border-slate-700 p-3">SPH</th>
-                  <th className="border-l border-slate-700 p-3">CYL</th>
-                  <th className="border-l border-slate-700 p-3">AXIS</th>
+
+                  <th className="border-l border-white/15 p-3">SPH</th>
+
+                  <th className="border-l border-white/15 p-3">CYL</th>
+
+                  <th className="border-l border-white/15 p-3">AXIS</th>
+
                   <th className="p-3">ADD</th>
                 </tr>
               </thead>
+
               <tbody>
-                <tr className="border-t">
-                  <td className="p-3 text-right font-black">RIGHT (OD)</td>
+                <tr className="border-t border-[var(--border)] bg-[var(--surface)]">
+                  <td className="p-3 text-right font-black text-[var(--text-primary)]">
+                    RIGHT (OD)
+                  </td>
+
                   {(["odSph", "odCyl", "odAxis", "odAdd"] as const).map((k) => (
                     <td key={k} className="p-2">
                       <input
@@ -297,8 +321,12 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
                     </td>
                   ))}
                 </tr>
-                <tr className="border-t bg-slate-50">
-                  <td className="p-3 text-right font-black">LEFT (OS)</td>
+
+                <tr className="border-t border-[var(--border)] bg-[var(--surface-soft)]">
+                  <td className="p-3 text-right font-black text-[var(--text-primary)]">
+                    LEFT (OS)
+                  </td>
+
                   {(["osSph", "osCyl", "osAxis", "osAdd"] as const).map((k) => (
                     <td key={k} className="p-2">
                       <input
@@ -314,9 +342,11 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
               </tbody>
             </table>
           </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-[1fr_240px] items-end">
+
+          <div className="mt-5 grid items-end gap-4 md:grid-cols-[1fr_240px]">
             <label>
               <span className="label">ملاحظات</span>
+
               <textarea
                 className="input"
                 rows={3}
@@ -324,8 +354,10 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
                 onChange={(e) => update("notes", e.target.value)}
               />
             </label>
+
             <label>
               <span className="label">السعر</span>
+
               <input
                 required
                 className="input text-lg font-black"
@@ -340,17 +372,24 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
           </div>
         </section>
 
+        {/* 3. الحساب */}
         <section className={section}>
           <div className="mb-5">
-            <h2 className="text-lg font-black">3. الحساب</h2>
-            <p className="mt-1 text-xs text-slate-400">
+            <h2 className="text-lg font-black text-[var(--text-primary)]">
+              3. الحساب
+            </h2>
+
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
               المبالغ تُحسب تلقائيًا من السعر والخصم والمدفوع.
             </p>
           </div>
+
           <div className="grid gap-4 md:grid-cols-4">
             <Summary label="المجموع الفرعي" value={subtotal} money={money} />
+
             <label>
               <span className="label">الخصم</span>
+
               <input
                 className="input"
                 type="number"
@@ -360,9 +399,12 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
                 onChange={(e) => update("discount", e.target.value)}
               />
             </label>
+
             <Summary label="الإجمالي" value={total} money={money} strong />
+
             <label>
               <span className="label">المدفوع</span>
+
               <input
                 className="input"
                 type="number"
@@ -373,12 +415,15 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
               />
             </label>
           </div>
-          <div className="mt-5 flex items-center justify-between rounded-xl bg-slate-900 p-4 text-white">
+
+          <div className="mt-5 flex items-center justify-between rounded-xl bg-[var(--primary)] p-4 text-white shadow-sm">
             <span className="font-bold">المتبقي</span>
+
             <strong className="text-2xl">{money(remaining)}</strong>
           </div>
         </section>
 
+        {/* الأزرار */}
         <div className="no-print flex flex-wrap justify-end gap-3">
           <button
             type="button"
@@ -388,8 +433,10 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
             }
           >
             <RotateCcw size={17} />
+
             {mode === "edit" ? "إلغاء" : "تفريغ النموذج"}
           </button>
+
           {mode === "create" && (
             <button
               type="button"
@@ -398,11 +445,14 @@ export function UnifiedInvoiceForm({ mode = "create", invoiceId }: Props) {
               className="btn-primary"
             >
               <Printer size={17} />
+
               {saving ? "جاري الحفظ..." : "حفظ وطباعة"}
             </button>
           )}
+
           <button disabled={saving} className="btn-primary">
             <Save size={17} />
+
             {saving
               ? "جاري الحفظ..."
               : mode === "edit"

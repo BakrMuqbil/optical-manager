@@ -50,187 +50,210 @@ export default function Page() {
   };
 
   return (
-    <PageContainer
-      title="الإعدادات"
-      description="بيانات المحل وإعدادات الطباعة والنسخ الاحتياطي"
-    >
-      <div className="grid gap-6 lg:grid-cols-2">
-        <form
-          onSubmit={save}
-          className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-        >
-          <h2 className="mb-5 text-lg font-black">بيانات المحل</h2>
+  <PageContainer
+    title="الإعدادات"
+    description="بيانات المحل وإعدادات الطباعة والنسخ الاحتياطي"
+  >
+    <div className="grid gap-6 lg:grid-cols-2">
+      {/* بيانات المحل */}
+      <form
+        onSubmit={save}
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm"
+      >
+        <div className="mb-6">
+          <h2 className="text-lg font-black text-[var(--text-primary)]">
+            بيانات المحل
+          </h2>
 
-          <div className="space-y-4">
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            هذه البيانات تظهر في الفواتير المطبوعة.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <label>
+            <span className="label">اسم المحل</span>
+
+            <input
+              className="input"
+              value={form.shop_name || ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  shop_name: e.target.value,
+                })
+              }
+            />
+          </label>
+
+          <label>
+            <span className="label">رقم الهاتف</span>
+
+            <input
+              className="input"
+              dir="ltr"
+              value={form.phone || ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  phone: e.target.value,
+                })
+              }
+            />
+          </label>
+
+          <label>
+            <span className="label">العنوان</span>
+
+            <input
+              className="input"
+              value={form.address || ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  address: e.target.value,
+                })
+              }
+            />
+          </label>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <label>
-              <span className="label">اسم المحل</span>
+              <span className="label">العملة</span>
 
               <input
                 className="input"
-                value={form.shop_name || ""}
+                value={form.currency || ""}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    shop_name: e.target.value,
+                    currency: e.target.value,
                   })
                 }
               />
             </label>
 
             <label>
-              <span className="label">رقم الهاتف</span>
+              <span className="label">مقاس الطباعة</span>
 
-              <input
+              <select
                 className="input"
-                dir="ltr"
-                value={form.phone || ""}
-                onChange={(e) =>
+                value={form.paper_size || "A4"}
+                onChange={(e) => {
+                  const paperSize =
+                    e.target.value === "THERMAL"
+                      ? "THERMAL"
+                      : "A4";
+
                   setForm({
                     ...form,
-                    phone: e.target.value,
-                  })
-                }
-              />
-            </label>
-
-            <label>
-              <span className="label">العنوان</span>
-
-              <input
-                className="input"
-                value={form.address || ""}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    address: e.target.value,
-                  })
-                }
-              />
-            </label>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label>
-                <span className="label">العملة</span>
-
-                <input
-                  className="input"
-                  value={form.currency || ""}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      currency: e.target.value,
-                    })
-                  }
-                />
-              </label>
-
-              <label>
-                <span className="label">مقاس الطباعة</span>
-
-                <select
-                  className="input"
-                  value={form.paper_size || "A4"}
-                  onChange={(e) => {
-                    const paperSize =
-                      e.target.value === "THERMAL" ? "THERMAL" : "A4";
-
-                    setForm({
-                      ...form,
-                      paper_size: paperSize,
-                    });
-                  }}
-                >
-                  <option value="A4">A4</option>
-                  <option value="THERMAL">حرارية</option>
-                </select>
-              </label>
-            </div>
-
-            <label>
-              <span className="label">أسفل الفاتورة</span>
-
-              <input
-                className="input"
-                value={form.invoice_footer || ""}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    invoice_footer: e.target.value,
-                  })
-                }
-              />
+                    paper_size: paperSize,
+                  });
+                }}
+              >
+                <option value="A4">A4</option>
+                <option value="THERMAL">حرارية</option>
+              </select>
             </label>
           </div>
 
-          <button className="btn-primary mt-6">
-            <Save size={17} />
+          <label>
+            <span className="label">أسفل الفاتورة</span>
 
-            {saved ? "تم الحفظ" : "حفظ الإعدادات"}
-          </button>
-        </form>
+            <input
+              className="input"
+              value={form.invoice_footer || ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  invoice_footer: e.target.value,
+                })
+              }
+            />
+          </label>
+        </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-black">النسخ الاحتياطي</h2>
+        <button className="btn-primary mt-6">
+          <Save size={17} />
 
-          <p className="mt-2 text-sm leading-7 text-slate-500">
+          {saved ? "تم الحفظ" : "حفظ الإعدادات"}
+        </button>
+      </form>
+
+      {/* النسخ الاحتياطي */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
+        <div className="mb-6">
+          <h2 className="text-lg font-black text-[var(--text-primary)]">
+            النسخ الاحتياطي
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-[var(--text-secondary)]">
             احفظ نسخة JSON من العملاء والفواتير والإعدادات في مكان آمن.
           </p>
+        </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            <a href="/api/backup" className="btn-secondary">
-              <Download size={17} />
-              تحميل نسخة احتياطية
-            </a>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/api/backup"
+            className="btn-secondary"
+          >
+            <Download size={17} />
 
-            <label className="btn-secondary cursor-pointer">
-              <Upload size={17} />
-              استعادة نسخة
-              <input
-                type="file"
-                accept="application/json"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
+            تحميل نسخة احتياطية
+          </a>
 
-                  if (
-                    !file ||
-                    !confirm(
-                      "سيتم استبدال البيانات الحالية ببيانات النسخة. هل تريد المتابعة؟",
-                    )
-                  ) {
-                    return;
-                  }
+          <label className="btn-secondary cursor-pointer">
+            <Upload size={17} />
 
-                  const r = await fetch("/api/backup", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: await file.text(),
-                  });
+            استعادة نسخة
 
-                  const j = await r.json();
+            <input
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
 
-                  alert(
-                    j.success
-                      ? "تمت استعادة النسخة بنجاح"
-                      : "فشلت الاستعادة: " + j.error,
-                  );
+                if (
+                  !file ||
+                  !confirm(
+                    "سيتم استبدال البيانات الحالية ببيانات النسخة. هل تريد المتابعة؟",
+                  )
+                ) {
+                  return;
+                }
 
-                  if (j.success) {
-                    location.reload();
-                  }
-                }}
-              />
-            </label>
-          </div>
+                const r = await fetch("/api/backup", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: await file.text(),
+                });
 
-          <div className="mt-6 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-            مهم: لا تعتمد على جهاز واحد فقط. احتفظ بنسخة احتياطية خارج الجهاز
-            بشكل دوري.
-          </div>
+                const j = await r.json();
+
+                alert(
+                  j.success
+                    ? "تمت استعادة النسخة بنجاح"
+                    : "فشلت الاستعادة: " + j.error,
+                );
+
+                if (j.success) {
+                  location.reload();
+                }
+              }}
+            />
+          </label>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-[var(--warning)]/20 bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning)]">
+          <strong className="font-black">مهم: </strong>
+          لا تعتمد على جهاز واحد فقط. احتفظ بنسخة احتياطية خارج الجهاز
+          بشكل دوري.
         </div>
       </div>
-    </PageContainer>
-  );
+    </div>
+  </PageContainer>
+);
 }
