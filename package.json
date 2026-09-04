@@ -17,7 +17,7 @@
   },
   "build": {
     "appId": "com.optical.manager",
-    "productName": "المركز الأردني للنظارات",
+    "productName": "الأردني للنظارات",
     "directories": {
       "output": "dist"
     },
@@ -44,7 +44,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "المركز الأردني للنظارات"
+      "shortcutName": "الأردني للنظارات"
     }
   },
   "dependencies": {
