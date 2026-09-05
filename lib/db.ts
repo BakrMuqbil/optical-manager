@@ -212,10 +212,23 @@ function addColumn(
   column: string,
   definition: string,
 ) {
-  if (!hasColumn(table, column)) {
+  if (hasColumn(table, column)) {
+    return;
+  }
+
+  try {
     db.exec(
       `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`,
     );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes("duplicate column name")
+    ) {
+      return;
+    }
+
+    throw error;
   }
 }
 
