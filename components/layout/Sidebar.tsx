@@ -7,13 +7,15 @@ import {
     Settings,
     Menu,
     X,
-    PlusCircle
+    PlusCircle,
+    Wallet
 } from "lucide-react";
 import { useState } from "react";
 
 const links = [
     { href: "/", label: "لوحة التحكم", icon: Home },
     { href: "/invoices/new", label: "فاتورة", icon: PlusCircle },
+    { href: "/financial", label: "الإدارة المالية", icon: Wallet },
     { href: "/account-statement", label: "كشف الحساب", icon: ClipboardList },
     { href: "/settings", label: "الإعدادات", icon: Settings }
 ];
@@ -23,7 +25,6 @@ export function Sidebar() {
     const [open, setOpen] = useState(false);
     return (
         <>
-            {/* Mobile trigger */}
             <button
                 onClick={() => setOpen(true)}
                 className="no-print fixed right-4 top-4 z-40 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold shadow-md md:hidden"
@@ -37,7 +38,6 @@ export function Sidebar() {
                 القائمة
             </button>
 
-            {/* Mobile overlay */}
             {open && (
                 <div
                     className="no-print fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[1px] md:hidden"
@@ -52,7 +52,6 @@ export function Sidebar() {
                     borderColor: "var(--border)"
                 }}
             >
-                {/* Brand */}
                 <div
                     className="flex items-center justify-between gap-3 border-b p-5"
                     style={{ borderColor: "var(--border)" }}
@@ -93,7 +92,6 @@ export function Sidebar() {
                     </button>
                 </div>
 
-                {/* Navigation */}
                 <nav className="flex-1 space-y-1.5 overflow-y-auto p-4">
                     <div
                         className="mb-2 px-2 text-[11px] font-black uppercase tracking-wider"
@@ -150,7 +148,6 @@ export function Sidebar() {
                     })}
                 </nav>
 
-                {/* Footer */}
                 <div
                     className="border-t p-4 text-xs font-semibold"
                     style={{

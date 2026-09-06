@@ -3,6 +3,7 @@ import {
   db,
   nextCustomerNumber,
   nextInvoiceNumber,
+  nextTransactionNumber,
   normalizeMoney,
   normalizeOptionalInt,
   normalizeOptionalNumber,
@@ -132,6 +133,17 @@ export async function POST(req: Request) {
       );
       db.prepare(`INSERT INTO invoice_items (id,invoice_id,description,quantity,unit_price,total) VALUES (?,?,?,?,?,?)`)
         .run(uid("item"), id, "الخدمة", 1, clean.price, clean.price);
+      
+      if (clean.paid > 0) {
+        db.prepare(`
+          INSERT INTO financial_transactions 
+          (id, transaction_number, transaction_date, type, amount, invoice_id, customer_id, description, status)
+          VALUES (?, ?, ?, 'PAYMENT', ?, ?, ?, ?, 'ACTIVE')
+        `).run(
+          uid("ftx"), nextTransactionNumber(), clean.invoiceDate, clean.paid, id, customerId,
+          "دفعة عند إنشاء الفاتورة"
+        );
+      }
     });
     tx();
     return NextResponse.json({ success: true, data: { id, invoiceNumber } }, { status: 201 });

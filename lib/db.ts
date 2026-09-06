@@ -36,9 +36,7 @@ const globalForDb = globalThis as unknown as {
   db?: Database.Database;
 };
 
-export const db =
-  globalForDb.db ??
-  new Database(dbPath);
+export const db = globalForDb.db ?? new Database(dbPath);
 
 db.pragma("foreign_keys = ON");
 db.pragma("journal_mode = WAL");
@@ -192,34 +190,55 @@ CREATE TABLE IF NOT EXISTS invoice_items (
 
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice
 ON invoice_items(invoice_id);
+
+CREATE TABLE IF NOT EXISTS financial_transactions (
+  id TEXT PRIMARY KEY,
+  transaction_number TEXT NOT NULL UNIQUE,
+  transaction_date TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  type TEXT NOT NULL CHECK(type IN ('PAYMENT','EXPENSE')),
+  amount REAL NOT NULL DEFAULT 0,
+  invoice_id TEXT REFERENCES invoices(id) ON DELETE RESTRICT,
+  customer_id TEXT REFERENCES customers(id) ON DELETE RESTRICT,
+  description TEXT,
+  notes TEXT,
+  status TEXT NOT NULL DEFAULT 'ACTIVE'
+);
+
+CREATE INDEX IF NOT EXISTS idx_ft_date ON financial_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_ft_invoice ON financial_transactions(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_ft_customer ON financial_transactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_ft_type ON financial_transactions(type);
+
+CREATE TABLE IF NOT EXISTS cash_closures (
+  id TEXT PRIMARY KEY,
+  business_date TEXT NOT NULL UNIQUE,
+  opened_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  closed_at TEXT,
+  opening_balance REAL NOT NULL DEFAULT 0,
+  total_sales REAL NOT NULL DEFAULT 0,
+  total_collections REAL NOT NULL DEFAULT 0,
+  total_expenses REAL NOT NULL DEFAULT 0,
+  expected_cash REAL NOT NULL DEFAULT 0,
+  actual_cash REAL,
+  difference REAL NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'OPEN' CHECK(status IN ('OPEN','CLOSED'))
+);
 `);
 
 const columns = (table: string) =>
-  db
-    .prepare(`PRAGMA table_info(${table})`)
-    .all() as Array<{ name: string }>;
+  db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
 
-const hasColumn = (
-  table: string,
-  column: string,
-) =>
-  columns(table).some(
-    (c) => c.name === column,
-  );
+const hasColumn = (table: string, column: string) =>
+  columns(table).some((c) => c.name === column);
 
-function addColumn(
-  table: string,
-  column: string,
-  definition: string,
-) {
+function addColumn(table: string, column: string, definition: string) {
   if (hasColumn(table, column)) {
     return;
   }
 
   try {
-    db.exec(
-      `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`,
-    );
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
   } catch (error) {
     if (
       error instanceof Error &&
@@ -239,95 +258,35 @@ function addColumn(
  * database can still be opened safely.
  */
 
-addColumn(
-  "exams",
-  "exam_number",
-  "TEXT",
-);
+addColumn("exams", "exam_number", "TEXT");
 
-addColumn(
-  "invoices",
-  "exam_id",
-  "TEXT",
-);
+addColumn("invoices", "exam_id", "TEXT");
 
-addColumn(
-  "invoices",
-  "exam_date",
-  "TEXT",
-);
+addColumn("invoices", "exam_date", "TEXT");
 
-addColumn(
-  "invoices",
-  "od_sph",
-  "REAL",
-);
+addColumn("invoices", "od_sph", "REAL");
 
-addColumn(
-  "invoices",
-  "od_cyl",
-  "REAL",
-);
+addColumn("invoices", "od_cyl", "REAL");
 
-addColumn(
-  "invoices",
-  "od_axis",
-  "INTEGER",
-);
+addColumn("invoices", "od_axis", "INTEGER");
 
-addColumn(
-  "invoices",
-  "od_add",
-  "REAL",
-);
+addColumn("invoices", "od_add", "REAL");
 
-addColumn(
-  "invoices",
-  "os_sph",
-  "REAL",
-);
+addColumn("invoices", "os_sph", "REAL");
 
-addColumn(
-  "invoices",
-  "os_cyl",
-  "REAL",
-);
+addColumn("invoices", "os_cyl", "REAL");
 
-addColumn(
-  "invoices",
-  "os_axis",
-  "INTEGER",
-);
+addColumn("invoices", "os_axis", "INTEGER");
 
-addColumn(
-  "invoices",
-  "os_add",
-  "REAL",
-);
+addColumn("invoices", "os_add", "REAL");
 
-addColumn(
-  "invoices",
-  "pd",
-  "REAL",
-);
+addColumn("invoices", "pd", "REAL");
 
-addColumn(
-  "invoices",
-  "near_pd",
-  "REAL",
-);
+addColumn("invoices", "near_pd", "REAL");
 
-addColumn(
-  "invoices",
-  "examiner",
-  "TEXT",
-);
+addColumn("invoices", "examiner", "TEXT");
 
-addColumn(
-  "invoices",
-  "exam_notes",
-  "TEXT",
-);
+addColumn("invoices", "exam_notes", "TEXT");
 
 /*
  * Move old exam data into the invoice record.
@@ -370,9 +329,7 @@ if (hasColumn("invoices", "exam_id")) {
         AND i.exam_date IS NULL
       `,
     )
-    .all() as Array<
-      Record<string, unknown>
-    >;
+    .all() as Array<Record<string, unknown>>;
 
   const update = db.prepare(
     `
@@ -400,38 +357,108 @@ if (hasColumn("invoices", "exam_id")) {
     `,
   );
 
-  const transaction = db.transaction(
+  const transaction = db.transaction((rows: Array<Record<string, unknown>>) => {
+    for (const row of rows) {
+      update.run(
+        row.exam_date,
+
+        row.od_sph,
+        row.od_cyl,
+        row.od_axis,
+        row.od_add,
+
+        row.os_sph,
+        row.os_cyl,
+        row.os_axis,
+        row.os_add,
+
+        row.pd,
+        row.near_pd,
+
+        row.examiner,
+        row.exam_notes,
+
+        row.invoice_id,
+      );
+    }
+  });
+
+  if (legacyRows.length > 0) {
+    transaction(legacyRows);
+  }
+}
+
+/*
+ * Migrate existing invoice.paid into financial_transactions
+ * for backward compatibility.
+ */
+const hasFinancialTransactions = db
+  .prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='financial_transactions'",
+  )
+  .get();
+
+if (hasFinancialTransactions) {
+  const legacyPaidInvoices = db
+    .prepare(
+      `
+      SELECT
+        i.id AS invoice_id,
+        i.customer_id,
+        i.paid,
+        i.invoice_date,
+        i.created_at
+      FROM invoices i
+      WHERE i.paid > 0
+        AND i.id NOT IN (
+          SELECT invoice_id
+          FROM financial_transactions
+          WHERE invoice_id IS NOT NULL
+        )
+      `,
+    )
+    .all() as Array<{
+    invoice_id: string;
+    customer_id: string;
+    paid: number;
+    invoice_date: string;
+    created_at: string;
+  }>;
+
+  const insertFt = db.prepare(
+    `
+    INSERT INTO financial_transactions
+      (id, transaction_number, transaction_date, type, amount,
+       invoice_id, customer_id, description, status)
+    VALUES (?, ?, ?, 'PAYMENT', ?, ?, ?, 'دفعة عند إنشاء الفاتورة (ترحيل)', 'ACTIVE')
+    `,
+  );
+
+  const tx = db.transaction(
     (
-      rows: Array<Record<string, unknown>>,
+      rows: Array<{
+        invoice_id: string;
+        customer_id: string;
+        paid: number;
+        invoice_date: string;
+        created_at: string;
+      }>,
     ) => {
-      for (const row of rows) {
-        update.run(
-          row.exam_date,
-
-          row.od_sph,
-          row.od_cyl,
-          row.od_axis,
-          row.od_add,
-
-          row.os_sph,
-          row.os_cyl,
-          row.os_axis,
-          row.os_add,
-
-          row.pd,
-          row.near_pd,
-
-          row.examiner,
-          row.exam_notes,
-
-          row.invoice_id,
+      for (const inv of rows) {
+        insertFt.run(
+          uid("ftx"),
+          nextNumber("TX", "financial_transactions", "transaction_number"),
+          inv.invoice_date || inv.created_at.slice(0, 10),
+          inv.paid,
+          inv.invoice_id,
+          inv.customer_id,
         );
       }
     },
   );
 
-  if (legacyRows.length > 0) {
-    transaction(legacyRows);
+  if (legacyPaidInvoices.length > 0) {
+    tx(legacyPaidInvoices);
   }
 }
 
@@ -441,7 +468,7 @@ export function uid(prefix: string) {
 
 function nextNumber(
   prefix: string,
-  table: "customers" | "invoices",
+  table: "customers" | "invoices" | "financial_transactions",
   field: string,
 ) {
   const rows = db
@@ -451,95 +478,58 @@ function nextNumber(
        WHERE ${field} LIKE ?`,
     )
     .all(`${prefix}-%`) as Array<{
-      value?: string;
-    }>;
+    value?: string;
+  }>;
 
-  const max = rows.reduce(
-    (highest, row) => {
-      const number = Number(
-        row.value?.match(/(\d+)$/)?.[1] || 0,
-      );
+  const max = rows.reduce((highest, row) => {
+    const number = Number(row.value?.match(/(\d+)$/)?.[1] || 0);
 
-      return Math.max(
-        highest,
-        Number.isFinite(number)
-          ? number
-          : 0,
-      );
-    },
-    0,
-  );
+    return Math.max(highest, Number.isFinite(number) ? number : 0);
+  }, 0);
 
   return `${prefix}-${String(max + 1).padStart(6, "0")}`;
 }
 
 export function nextCustomerNumber() {
-  return nextNumber(
-    "CUS",
-    "customers",
-    "customer_number",
-  );
+  return nextNumber("CUS", "customers", "customer_number");
 }
 
 export function nextInvoiceNumber() {
-  return nextNumber(
-    "INV",
-    "invoices",
-    "invoice_number",
-  );
+  return nextNumber("INV", "invoices", "invoice_number");
+}
+
+export function nextTransactionNumber() {
+  return nextNumber("TX", "financial_transactions", "transaction_number");
 }
 
 export function getSettings() {
-  return db
-    .prepare(
-      "SELECT * FROM settings WHERE id = 1",
-    )
-    .get();
+  return db.prepare("SELECT * FROM settings WHERE id = 1").get();
 }
 
-export function normalizeMoney(
-  value: unknown,
-) {
+export function normalizeMoney(value: unknown) {
   const number = Number(value);
 
-  return Number.isFinite(number) &&
-    number >= 0
+  return Number.isFinite(number) && number >= 0
     ? Math.round(number * 100) / 100
     : 0;
 }
 
-export function normalizeOptionalNumber(
-  value: unknown,
-) {
-  if (
-    value === "" ||
-    value === null ||
-    value === undefined
-  ) {
+export function normalizeOptionalNumber(value: unknown) {
+  if (value === "" || value === null || value === undefined) {
     return null;
   }
 
   const number = Number(value);
 
-  return Number.isFinite(number)
-    ? number
-    : null;
+  return Number.isFinite(number) ? number : null;
 }
 
-export function normalizeOptionalInt(
-  value: unknown,
-) {
-  if (
-    value === "" ||
-    value === null ||
-    value === undefined
-  ) {
+export function normalizeOptionalInt(value: unknown) {
+  if (value === "" || value === null || value === undefined) {
     return null;
   }
 
   const number = Number(value);
 
-  return Number.isInteger(number)
-    ? number
-    : null;
+  return Number.isInteger(number) ? number : null;
 }
