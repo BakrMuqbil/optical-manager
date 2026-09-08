@@ -6,6 +6,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -47,3 +50,15 @@ jobs:
             dist/*.blockmap
             dist/latest.yml
           if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+          generate_release_notes: true
+          draft: false
+          prerelease: false
