@@ -90,6 +90,106 @@ export function recalculateInvoiceBalance(
   );
 }
 
+export function synchronizeInvoicePayment(
+  invoiceId: string,
+  customerId: string,
+  transactionDate: string,
+  desiredPaid: number,
+  createTransactionNumber: () => string,
+): void {
+  const targetPaid = normalizeMoney(desiredPaid);
+
+  const payments = db
+    .prepare(
+      `SELECT
+         id,
+         amount,
+         created_at
+       FROM financial_transactions
+       WHERE invoice_id=?
+         AND type='PAYMENT'
+         AND status='ACTIVE'
+       ORDER BY created_at ASC, id ASC`,
+    )
+    .all(invoiceId) as Array<{
+      id: string;
+      amount: number;
+      created_at: string;
+    }>;
+
+  if (payments.length === 0) {
+    if (targetPaid > 0) {
+      db.prepare(
+        `INSERT INTO financial_transactions
+          (
+            id,
+            transaction_number,
+            transaction_date,
+            type,
+            amount,
+            invoice_id,
+            customer_id,
+            description,
+            status
+          )
+         VALUES (?, ?, ?, 'PAYMENT', ?, ?, ?, ?, 'ACTIVE')`,
+      ).run(
+        uid("ftx"),
+        createTransactionNumber(),
+        transactionDate,
+        targetPaid,
+        invoiceId,
+        customerId,
+        "دفعة عند تعديل الفاتورة",
+      );
+    }
+
+    return;
+  }
+
+  const primaryPayment = payments[0];
+
+  const otherPaymentsTotal = normalizeMoney(
+    payments
+      .slice(1)
+      .reduce(
+        (sum, payment) =>
+          sum + normalizeMoney(payment.amount),
+        0,
+      ),
+  );
+
+  const newPrimaryAmount = normalizeMoney(
+    targetPaid - otherPaymentsTotal,
+  );
+
+  if (newPrimaryAmount < 0) {
+    throw new Error(
+      "المبلغ المدفوع الجديد أقل من مجموع الدفعات المسجلة الأخرى لهذه الفاتورة",
+    );
+  }
+
+  if (newPrimaryAmount === 0) {
+    db.prepare(
+      `DELETE FROM financial_transactions
+       WHERE id=?`,
+    ).run(primaryPayment.id);
+  } else {
+    db.prepare(
+      `UPDATE financial_transactions
+       SET amount=?,
+           transaction_date=?,
+           customer_id=?
+       WHERE id=?`,
+    ).run(
+      newPrimaryAmount,
+      transactionDate,
+      customerId,
+      primaryPayment.id,
+    );
+  }
+}
+
 export function getFinancialSummary(date: string) {
   const sales = db
     .prepare(
