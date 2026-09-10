@@ -32,6 +32,11 @@ interface InvoicePrintProps {
     settings: Settings;
 }
 
+const formatVal = (val: string | number | null | undefined) => {
+  if (val === null || val === undefined || val === "") return "—";
+  return <span dir="ltr" className="inline-block">{val}</span>;
+};
+
 export function InvoicePrint({
     invoice,
     items = [],
@@ -115,106 +120,62 @@ export function InvoicePrint({
             {/* جدول فحص النظر */}
             <div className="mb-3 border-2 border-black text-center">
                 <table className="w-full border-collapse text-[11px] font-bold">
-                    <thead>
-                        <tr className="border-b-2 border-black">
-                            <th className="w-1/4 border-l-2 border-black" />
+  <thead>
+    <tr className="border-b-2 border-black">
+      <th className="w-1/4 border-l-2 border-black" />
+      <th colSpan={3} className="border-l-2 border-black bg-gray-50 py-1 text-center">
+        LEFT
+      </th>
+      <th colSpan={3} className="bg-gray-50 py-1 text-center">
+        RIGHT
+      </th>
+    </tr>
 
-                            <th
-                                colSpan={3}
-                                className="border-l-2 border-black bg-gray-50 py-1 text-center"
-                            >
-                                LEFT
-                            </th>
+    <tr className="border-b-2 border-black text-[10px]">
+      <th className="border-l-2 border-black" />
+      <th className="w-[12.5%] border-l border-black py-0.5">AXIS</th>
+      <th className="w-[12.5%] border-l border-black py-0.5">CYL</th>
+      <th className="w-[12.5%] border-l-2 border-black py-0.5">SPH</th>
+      <th className="w-[12.5%] border-l border-black py-0.5">AXIS</th>
+      <th className="w-[12.5%] border-l border-black py-0.5">CYL</th>
+      <th className="w-[12.5%] py-0.5">SPH</th>
+    </tr>
+  </thead>
 
-                            <th
-                                colSpan={3}
-                                className="bg-gray-50 py-1 text-center"
-                            >
-                                RIGHT
-                            </th>
-                        </tr>
+  <tbody>
+    <tr className="border-b border-black">
+      <td className="border-l-2 border-black px-1 py-1 text-left font-bold">
+        DISTANCE
+      </td>
 
-                        <tr className="border-b-2 border-black text-[10px]">
-                            <th className="border-l-2 border-black" />
+      <td className="border-l border-black">{formatVal(invoice.os_axis)}</td>
+      <td className="border-l border-black">{formatVal(invoice.os_cyl)}</td>
+      <td className="border-l-2 border-black">{formatVal(invoice.os_sph)}</td>
 
-                            <th className="w-[12.5%] border-l border-black py-0.5">
-                                AXIS
-                            </th>
+      <td className="border-l border-black">{formatVal(invoice.od_axis)}</td>
+      <td className="border-l border-black">{formatVal(invoice.od_cyl)}</td>
+      <td>{formatVal(invoice.od_sph)}</td>
+    </tr>
 
-                            <th className="w-[12.5%] border-l border-black py-0.5">
-                                CYL
-                            </th>
+    <tr className="border-b-2 border-black">
+      <td className="border-l-2 border-black px-1 py-1 text-left font-bold">
+        READING
+      </td>
 
-                            <th className="w-[12.5%] border-l-2 border-black py-0.5">
-                                SPH
-                            </th>
+      <td className="border-l border-black">
+        {formatVal(invoice.os_add ? `+${invoice.os_add}` : null)}
+      </td>
+      <td className="border-l border-black">—</td>
+      <td className="border-l-2 border-black">—</td>
 
-                            <th className="w-[12.5%] border-l border-black py-0.5">
-                                AXIS
-                            </th>
-
-                            <th className="w-[12.5%] border-l border-black py-0.5">
-                                CYL
-                            </th>
-
-                            <th className="w-[12.5%] py-0.5">SPH</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr className="border-b border-black">
-                            <td className="border-l-2 border-black px-1 py-1 text-left font-bold">
-                                DISTANCE
-                            </td>
-
-                            <td className="border-l border-black dir-ltr">
-                                {invoice.os_axis ?? "—"}
-                            </td>
-
-                            <td className="border-l border-black dir-ltr">
-                                {invoice.os_cyl ?? "—"}
-                            </td>
-
-                            <td className="border-l-2 border-black dir-ltr">
-                                {invoice.os_sph ?? "—"}
-                            </td>
-
-                            <td className="border-l border-black dir-ltr">
-                                {invoice.od_axis ?? "—"}
-                            </td>
-
-                            <td className="border-l border-black dir-ltr">
-                                {invoice.od_cyl ?? "—"}
-                            </td>
-
-                            <td className="dir-ltr">{invoice.od_sph ?? "—"}</td>
-                        </tr>
-
-                        <tr className="border-b-2 border-black">
-                            <td className="border-l-2 border-black px-1 py-1 text-left font-bold">
-                                READING
-                            </td>
-
-                            <td className="border-l border-black dir-ltr">
-                                {invoice.os_add ? `+${invoice.os_add}` : "—"}
-                            </td>
-
-                            <td className="border-l border-black dir-ltr">—</td>
-
-                            <td className="border-l-2 border-black dir-ltr">
-                                —
-                            </td>
-
-                            <td className="border-l border-black dir-ltr">
-                                {invoice.od_add ? `+${invoice.od_add}` : "—"}
-                            </td>
-
-                            <td className="border-l border-black dir-ltr">—</td>
-
-                            <td className="dir-ltr">—</td>
-                        </tr>
-                    </tbody>
-                </table>
+      <td className="border-l border-black">
+        {formatVal(invoice.od_add ? `+${invoice.od_add}` : null)}
+      </td>
+      <td className="border-l border-black">—</td>
+      <td>—</td>
+    </tr>
+  </tbody>
+</table>
 
                 {/* حقل I.P.D أسفل الجدول */}
                 <div className="flex justify-between border-t border-black bg-gray-50 p-1 px-2 text-right text-xs font-bold">

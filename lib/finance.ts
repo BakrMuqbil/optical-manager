@@ -48,6 +48,16 @@ export function getOrCreateCashClosure(
 export function recalculateInvoiceBalance(
   invoiceId: string,
 ): void {
+  const invoice = db
+    .prepare(
+      "SELECT total, status FROM invoices WHERE id = ?",
+    )
+    .get(invoiceId) as
+    | { total: number; status: string }
+    | undefined;
+
+  if (!invoice) return;
+
   const totalPaid = db
     .prepare(
       `SELECT COALESCE(SUM(amount),0) as total
@@ -58,14 +68,13 @@ export function recalculateInvoiceBalance(
     )
     .get(invoiceId) as { total: number };
 
-  const invoice = db
-    .prepare("SELECT total FROM invoices WHERE id = ?")
-    .get(invoiceId) as { total: number } | undefined;
-
-  if (!invoice) return;
-
   const paid = normalizeMoney(totalPaid.total);
   const remaining = normalizeMoney(invoice.total - paid);
+
+  // لا نسمح بإعادة حساب فاتورة ملغاة إلى PAID/UNPAID.
+  if (invoice.status === "CANCELLED") {
+    return;
+  }
 
   const status: string =
     remaining === 0
@@ -90,6 +99,16 @@ export function recalculateInvoiceBalance(
   );
 }
 
+/**
+ * مزامنة المبلغ المدفوع في نموذج تعديل الفاتورة مع الحركات المالية.
+ *
+ * القواعد:
+ * - لا يتم تغيير تاريخ أي دفعة موجودة.
+ * - لا يتم تغيير عميل أي دفعة موجودة.
+ * - عند زيادة المدفوع، ننشئ حركة جديدة بالفرق.
+ * - عند تخفيض المدفوع، نخفّض/نحذف أحدث الدفعات أولًا.
+ * - لا نعدّل حركة مرتبطة بيوم مالي مغلق.
+ */
 export function synchronizeInvoicePayment(
   invoiceId: string,
   customerId: string,
@@ -104,6 +123,7 @@ export function synchronizeInvoicePayment(
       `SELECT
          id,
          amount,
+         transaction_date,
          created_at
        FROM financial_transactions
        WHERE invoice_id=?
@@ -114,78 +134,88 @@ export function synchronizeInvoicePayment(
     .all(invoiceId) as Array<{
       id: string;
       amount: number;
+      transaction_date: string;
       created_at: string;
     }>;
 
-  if (payments.length === 0) {
-    if (targetPaid > 0) {
-      db.prepare(
-        `INSERT INTO financial_transactions
-          (
-            id,
-            transaction_number,
-            transaction_date,
-            type,
-            amount,
-            invoice_id,
-            customer_id,
-            description,
-            status
-          )
-         VALUES (?, ?, ?, 'PAYMENT', ?, ?, ?, ?, 'ACTIVE')`,
-      ).run(
-        uid("ftx"),
-        createTransactionNumber(),
-        transactionDate,
-        targetPaid,
-        invoiceId,
-        customerId,
-        "دفعة عند تعديل الفاتورة",
-      );
-    }
+  const currentPaid = normalizeMoney(
+    payments.reduce(
+      (sum, payment) => sum + normalizeMoney(payment.amount),
+      0,
+    ),
+  );
+
+  if (targetPaid === currentPaid) {
+    return;
+  }
+
+  if (targetPaid > currentPaid) {
+    const difference = normalizeMoney(targetPaid - currentPaid);
+
+    db.prepare(
+      `INSERT INTO financial_transactions
+        (
+          id,
+          transaction_number,
+          transaction_date,
+          type,
+          amount,
+          invoice_id,
+          customer_id,
+          description,
+          status
+        )
+       VALUES (?, ?, ?, 'PAYMENT', ?, ?, ?, ?, 'ACTIVE')`,
+    ).run(
+      uid("ftx"),
+      createTransactionNumber(),
+      transactionDate,
+      difference,
+      invoiceId,
+      customerId,
+      "دفعة عند تعديل الفاتورة",
+    );
 
     return;
   }
 
-  const primaryPayment = payments[0];
+  let reduction = normalizeMoney(currentPaid - targetPaid);
 
-  const otherPaymentsTotal = normalizeMoney(
-    payments
-      .slice(1)
-      .reduce(
-        (sum, payment) =>
-          sum + normalizeMoney(payment.amount),
-        0,
-      ),
-  );
+  // نبدأ من أحدث دفعة حتى لا نعيد كتابة تاريخ الدفعات الأقدم.
+  for (let index = payments.length - 1; index >= 0 && reduction > 0; index -= 1) {
+    const payment = payments[index];
+    const amount = normalizeMoney(payment.amount);
 
-  const newPrimaryAmount = normalizeMoney(
-    targetPaid - otherPaymentsTotal,
-  );
+    if (amount <= 0) continue;
 
-  if (newPrimaryAmount < 0) {
-    throw new Error(
-      "المبلغ المدفوع الجديد أقل من مجموع الدفعات المسجلة الأخرى لهذه الفاتورة",
-    );
+    if (isDayClosed(payment.transaction_date)) {
+      throw new Error(
+        "لا يمكن تخفيض المدفوع لأن إحدى الدفعات مرتبطة بيوم مالي مغلق",
+      );
+    }
+
+    const amountToRemove = Math.min(amount, reduction);
+    const newAmount = normalizeMoney(amount - amountToRemove);
+
+    if (newAmount === 0) {
+      db.prepare(
+        `DELETE FROM financial_transactions WHERE id=?`,
+      ).run(payment.id);
+    } else {
+      // نغيّر المبلغ فقط؛ التاريخ والعميل الأصليان ثابتان.
+      db.prepare(
+        `UPDATE financial_transactions
+         SET amount=?
+         WHERE id=?`,
+      ).run(newAmount, payment.id);
+    }
+
+    reduction = normalizeMoney(reduction - amountToRemove);
   }
 
-  if (newPrimaryAmount === 0) {
-    db.prepare(
-      `DELETE FROM financial_transactions
-       WHERE id=?`,
-    ).run(primaryPayment.id);
-  } else {
-    db.prepare(
-      `UPDATE financial_transactions
-       SET amount=?,
-           transaction_date=?,
-           customer_id=?
-       WHERE id=?`,
-    ).run(
-      newPrimaryAmount,
-      transactionDate,
-      customerId,
-      primaryPayment.id,
+  if (reduction > 0) {
+    throw new Error(
+      "تعذر تخفيض المدفوع من الدفعات المسجلة",
     );
   }
 }
@@ -228,6 +258,7 @@ export function getFinancialSummary(date: string) {
        WHERE t.transaction_date = ?
        AND t.type = 'PAYMENT'
        AND t.status = 'ACTIVE'
+       AND i.status <> 'CANCELLED'
        AND i.invoice_date <> ?`,
     )
     .get(date, date) as { total: number };
@@ -240,6 +271,7 @@ export function getFinancialSummary(date: string) {
        WHERE t.transaction_date = ?
        AND t.type = 'PAYMENT'
        AND t.status = 'ACTIVE'
+       AND i.status <> 'CANCELLED'
        AND i.invoice_date = ?`,
     )
     .get(date, date) as { total: number };

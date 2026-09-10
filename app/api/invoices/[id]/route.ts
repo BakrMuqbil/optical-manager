@@ -154,10 +154,7 @@ export async function PUT(req: Request, { params }: Ctx) {
      * إذا حاول المستخدم نقل الفاتورة إلى يوم مغلق،
      * نمنع العملية أيضًا.
      */
-    if (
-      invoiceDate !== current.invoice_date &&
-      isDayClosed(invoiceDate)
-    ) {
+    if (invoiceDate !== current.invoice_date && isDayClosed(invoiceDate)) {
       return NextResponse.json(
         {
           success: false,
@@ -179,10 +176,7 @@ export async function PUT(req: Request, { params }: Ctx) {
       );
     }
 
-    const discount = Math.min(
-      normalizeMoney(b.discount),
-      price,
-    );
+    const discount = Math.min(normalizeMoney(b.discount), price);
 
     const total = normalizeMoney(price - discount);
 
@@ -215,9 +209,6 @@ export async function PUT(req: Request, { params }: Ctx) {
     }
 
     const paid = requestedPaid;
-    
-
-    
 
     const now = new Date().toISOString();
 
@@ -225,38 +216,26 @@ export async function PUT(req: Request, { params }: Ctx) {
       /*
        * البحث عن عميل آخر بنفس رقم الجوال.
        */
-      const existing = db
-        .prepare(
-          `SELECT id
-           FROM customers
-           WHERE phone=?
-             AND status='ACTIVE'
-             AND id<>?
-           ORDER BY created_at DESC
-           LIMIT 1`,
-        )
-        .get(phone, current.customer_id) as
-        | { id: string }
-        | undefined;
-
-      let customerId = current.customer_id;
-
-      if (existing) {
-        customerId = existing.id;
-      }
+      /*
+       * العميل مرتبط بالفاتورة عن طريق customer_id فقط.
+       *
+       * رقم الجوال ليس معرفًا فريدًا للعميل، لذلك:
+       * - لا نبحث عن عميل آخر بنفس الجوال.
+       * - لا نغيّر customer_id تلقائيًا.
+       * - لا ندمج العملاء بسبب تطابق رقم الجوال.
+       *
+       * عند تعديل الفاتورة، يتم تعديل بيانات العميل
+       * المرتبط بهذه الفاتورة فقط.
+       */
+      const customerId = current.customer_id;
 
       db.prepare(
         `UPDATE customers
-         SET name=?,
-             phone=?,
-             updated_at=?
-         WHERE id=?`,
-      ).run(
-        name,
-        phone,
-        now,
-        customerId,
-      );
+   SET name=?,
+       phone=?,
+       updated_at=?
+   WHERE id=?`,
+      ).run(name, phone, now, customerId);
 
       /*
        * تحديث بيانات الفاتورة الأساسية.
@@ -323,9 +302,7 @@ export async function PUT(req: Request, { params }: Ctx) {
       /*
        * إعادة بناء بند الفاتورة.
        */
-      db.prepare(
-        "DELETE FROM invoice_items WHERE invoice_id=?",
-      ).run(id);
+      db.prepare("DELETE FROM invoice_items WHERE invoice_id=?").run(id);
 
       db.prepare(
         `INSERT INTO invoice_items
@@ -338,22 +315,15 @@ export async function PUT(req: Request, { params }: Ctx) {
             total
           )
          VALUES (?,?,?,?,?,?)`,
-      ).run(
-        uid("item"),
-        id,
-        "الخدمة",
-        1,
-        price,
-        price,
-      );
+      ).run(uid("item"), id, "الخدمة", 1, price, price);
 
       /*
        * أهم جزء في الإصلاح:
        *
        * مزامنة الدفعات المالية مع paid الجديد.
        *
-       * هنا سيتم تحويل TX القديم من 80 إلى 64
-       * في الحالة التي حدثت مع INV-000004.
+       * يتم تعديل إجمالي الدفعات دون نقل تاريخ أو عميل
+       * أي حركة مالية موجودة.
        */
       synchronizeInvoicePayment(
         id,
@@ -378,23 +348,31 @@ export async function PUT(req: Request, { params }: Ctx) {
   } catch (error) {
     console.error("PUT /api/invoices/[id] error:", error);
 
+    const message =
+      error instanceof Error ? error.message : "تعذر تعديل الفاتورة";
+
+    const isBusinessRuleError =
+      message.includes("مرتبط بعميل آخر") ||
+      message.includes("يوم مالي مغلق") ||
+      message.includes("الدفعات المسجلة");
+
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "تعذر تعديل الفاتورة",
+        error: message,
       },
-      { status: 500 },
+      {
+        status: message.includes("مرتبط بعميل آخر")
+          ? 409
+          : isBusinessRuleError
+            ? 400
+            : 500,
+      },
     );
   }
 }
 
-export async function DELETE(
-  _: Request,
-  { params }: Ctx,
-) {
+export async function DELETE(_: Request, { params }: Ctx) {
   try {
     const { id } = await params;
 
@@ -445,6 +423,31 @@ export async function DELETE(
       );
     }
 
+    const closedPayment = db
+      .prepare(
+        `SELECT transaction_date
+         FROM financial_transactions
+         WHERE invoice_id=?
+           AND type='PAYMENT'
+           AND status='ACTIVE'
+           AND transaction_date<>?
+         ORDER BY transaction_date DESC
+         LIMIT 1`,
+      )
+      .get(id, invoice.invoice_date) as
+      | { transaction_date: string }
+      | undefined;
+
+    if (closedPayment && isDayClosed(closedPayment.transaction_date)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لا يمكن حذف الفاتورة لأن لديها دفعة مرتبطة بيوم مالي مغلق",
+        },
+        { status: 400 },
+      );
+    }
+
     /*
      * الحذف يجب أن يكون Transaction واحد.
      *
@@ -459,11 +462,7 @@ export async function DELETE(
          WHERE invoice_id=?`,
       ).run(id);
 
-      const result = db
-        .prepare(
-          "DELETE FROM invoices WHERE id=?",
-        )
-        .run(id);
+      const result = db.prepare("DELETE FROM invoices WHERE id=?").run(id);
 
       if (!result.changes) {
         throw new Error("الفاتورة غير موجودة");

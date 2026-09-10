@@ -9,7 +9,7 @@ import {
   normalizeOptionalNumber,
   uid,
 } from "@/lib/db";
-import { recalculateInvoiceBalance } from "@/lib/finance";
+import { isDayClosed, recalculateInvoiceBalance } from "@/lib/finance";
 
 
 export const dynamic = "force-dynamic";
@@ -91,20 +91,31 @@ function cleanBody(b: InvoiceBody) {
 }
 
 function getOrCreateCustomer(name: string, phone: string) {
-  const existing = phone
-    ? db.prepare("SELECT id FROM customers WHERE phone=? AND status='ACTIVE' ORDER BY created_at DESC LIMIT 1").get(phone) as { id: string } | undefined
-    : undefined;
-
   const now = new Date().toISOString();
-  if (existing) {
-    db.prepare("UPDATE customers SET name=?, updated_at=? WHERE id=?").run(name, now, existing.id);
-    return existing.id;
-  }
-
   const id = uid("cust");
-  db.prepare(`INSERT INTO customers
-    (id,customer_number,name,phone,status,created_at,updated_at)
-    VALUES (?,?,?,?,?,?,?)`).run(id, nextCustomerNumber(), name, phone || null, "ACTIVE", now, now);
+
+  db.prepare(
+    `INSERT INTO customers
+      (
+        id,
+        customer_number,
+        name,
+        phone,
+        status,
+        created_at,
+        updated_at
+      )
+     VALUES (?,?,?,?,?,?,?)`,
+  ).run(
+    id,
+    nextCustomerNumber(),
+    name,
+    phone || null,
+    "ACTIVE",
+    now,
+    now,
+  );
+
   return id;
 }
 
@@ -129,6 +140,16 @@ export async function POST(req: Request) {
         {
           success: false,
           error: "رقم الجوال مطلوب",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (isDayClosed(clean.invoiceDate)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لا يمكن إنشاء فاتورة في يوم مغلق",
         },
         { status: 400 },
       );
