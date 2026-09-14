@@ -26,7 +26,7 @@
 - `GET/POST /api/backup` — يشمل الجداول الجديدة (version 4)
 
 ### UI
-- Sidebar: "الإدارة المالية" بدلاً من "كشف الحساب"
+- Sidebar: "الإدارة المالية" بدلاً من "الفواتير"
 - صفحة `/financial` — ملخص + حركات + ديون + دفعات
 - صفحة `/financial/closure` — إغلاق الصندوق
 - صفحة `/financial/closure/print` — طباعة التقرير
@@ -40,3 +40,20 @@
 - لا يمكن تسجيل حركة في يوم مغلق
 - يسمح بدفع فاتورة قديمة في يوم جديد
 - الحركات غير قابلة للحذف (IMMUTABLE)
+
+
+## Refactor النهائي
+- دمج سجل الفواتير داخل `/financial` مع تبويب `السجلات`، وإضافة `/invoices` كواجهة قائمة الفواتير الرئيسية.
+- إزالة واجهة `app/account-statement` وتوفير تحويل توافق قديم من `/account-statement` إلى `/invoices`.
+- Sidebar أصبح أربع وجهات: لوحة التحكم، الفواتير، الإدارة المالية، الإعدادات.
+- استخراج اختيار الفترة إلى `app/financial/components/FinancialPeriodSelector.tsx`.
+- استخراج منطق الفترة إلى `app/financial/utils/period.ts` و`useFinancialPeriod`.
+- استخراج تحميل الإدارة المالية إلى `useFinancialData`.
+- استخراج تحميل/فلترة سجل الفواتير إلى `useInvoiceHistory`.
+- استخراج `StatusBadge` و`Pagination` إلى `components/common`.
+- تقسيم أنواع التطبيق إلى ملفات نطاقية مع إبقاء `types/app.ts` كواجهة توافق.
+- تقسيم `lib/finance.ts` إلى نطاقات مستقلة مع إبقاء `lib/finance.ts` كواجهة توافق.
+- تقسيم طبقة قاعدة البيانات إلى connection/schema/migrations/helpers/settings مع إبقاء `lib/db.ts` كواجهة توافق.
+- استخراج خدمات مالية وفواتير في `lib/services`.
+- نقل منطق نموذج الفاتورة إلى `app/invoices/hooks/useInvoiceForm.ts` مع إبقاء واجهة النموذج الحالية.
+- الحفاظ على مسار بيانات Electron ومخطط SQLite وعمليات الترحيل القديمة.

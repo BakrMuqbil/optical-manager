@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { PlusCircle, X } from "lucide-react";
+import { PlusCircle, Save, X } from "lucide-react";
+import type { FinancialTransaction } from "@/types/financial";
 
 type Props = {
   date: string;
   currency: string;
   onSuccess: () => void;
   onCancel: () => void;
+  expense?: FinancialTransaction | null;
 };
 
 export function ExpenseForm({
@@ -15,11 +17,20 @@ export function ExpenseForm({
   currency,
   onSuccess,
   onCancel,
+  expense = null,
 }: Props) {
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
+  const isEditMode = Boolean(expense);
+
+  const [amount, setAmount] = useState(
+    expense ? String(expense.amount) : ""
+  );
+  const [description, setDescription] = useState(
+    expense ? expense.description || "" : ""
+  );
   const [notes, setNotes] = useState("");
-  const [expenseDate, setExpenseDate] = useState(date);
+  const [expenseDate, setExpenseDate] = useState(
+    expense ? expense.transaction_date : date
+  );
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
@@ -44,11 +55,12 @@ export function ExpenseForm({
 
     try {
       const response = await fetch("/api/expenses", {
-        method: "POST",
+        method: isEditMode ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          ...(isEditMode ? { id: expense!.id } : {}),
           amount: value,
           date: expenseDate,
           description: description.trim(),
@@ -59,15 +71,22 @@ export function ExpenseForm({
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.error || "تعذر تسجيل المصروف");
+        alert(
+          data.error ||
+            (isEditMode ? "تعذر تعديل المصروف" : "تعذر تسجيل المصروف")
+        );
         return;
       }
 
-      alert("تم تسجيل المصروف بنجاح");
+      alert(isEditMode ? "تم تعديل المصروف بنجاح" : "تم تسجيل المصروف بنجاح");
 
       onSuccess();
     } catch {
-      alert("حدث خطأ أثناء تسجيل المصروف");
+      alert(
+        isEditMode
+          ? "حدث خطأ أثناء تعديل المصروف"
+          : "حدث خطأ أثناء تسجيل المصروف"
+      );
     } finally {
       setLoading(false);
     }
@@ -77,7 +96,9 @@ export function ExpenseForm({
     <section className="surface-card border">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h2 className="font-black">إضافة مصروف</h2>
+          <h2 className="font-black">
+            {isEditMode ? "تعديل مصروف" : "إضافة مصروف"}
+          </h2>
 
           <p
             className="mt-1 text-xs"
@@ -85,7 +106,9 @@ export function ExpenseForm({
               color: "var(--text-muted)",
             }}
           >
-            تسجيل مصروف جديد ضمن الحركات المالية
+            {isEditMode
+              ? "تعديل بيانات المصروف المحدد"
+              : "تسجيل مصروف جديد ضمن الحركات المالية"}
           </p>
         </div>
 
@@ -180,8 +203,12 @@ export function ExpenseForm({
           disabled={loading}
           className="btn-primary"
         >
-          <PlusCircle size={17} />
-          {loading ? "جاري الحفظ..." : "حفظ المصروف"}
+          {isEditMode ? <Save size={17} /> : <PlusCircle size={17} />}
+          {loading
+            ? "جاري الحفظ..."
+            : isEditMode
+              ? "حفظ التعديلات"
+              : "حفظ المصروف"}
         </button>
       </div>
     </section>

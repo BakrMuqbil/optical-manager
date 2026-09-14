@@ -497,7 +497,6 @@ optical-manager/
 │   │   ├── payments/
 │   │   └── settings/
 │   │
-│   ├── account-statement/
 │   ├── customer-statement/
 │   ├── financial/
 │   ├── invoices/
@@ -507,6 +506,9 @@ optical-manager/
 │   └── page.tsx
 │
 ├── components/
+│   ├── common/
+│   │   ├── Pagination.tsx
+│   │   └── StatusBadge.tsx
 │   ├── invoices/
 │   ├── layout/
 │   └── printing/
@@ -516,8 +518,24 @@ optical-manager/
 │
 ├── lib/
 │   ├── db.ts
+│   ├── db/
+│   │   ├── connection.ts
+│   │   ├── schema.ts
+│   │   ├── migrations.ts
+│   │   ├── helpers.ts
+│   │   └── settings.ts
 │   ├── finance.ts
-│   └── ...
+│   ├── finance/
+│   │   ├── summary.ts
+│   │   ├── transactions.ts
+│   │   ├── payments.ts
+│   │   ├── debts.ts
+│   │   ├── cashClosure.ts
+│   │   └── dashboard.ts
+│   ├── services/
+│   │   ├── financialService.ts
+│   │   └── invoiceService.ts
+│   └── utils/
 │
 ├── public/
 │

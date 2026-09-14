@@ -18,7 +18,7 @@ There is no separate UI or numbering system for an eye exam.
 
 1. **لوحة التحكم** — invoice count, total due/billed, total paid and total remaining, plus recent invoices.
 2. **فاتورة** — one fast-entry form with three sections: customer, measurements, accounting.
-3. **كشف الحساب** — daily/monthly/yearly statement with search, payment-status filtering, totals, edit, print and delete actions.
+3. **الفواتير** — daily/monthly/yearly statement with search, payment-status filtering, totals, edit, print and delete actions.
 4. **الإعدادات** — shop data, currency, print size and backup/restore.
 
 ## Data compatibility

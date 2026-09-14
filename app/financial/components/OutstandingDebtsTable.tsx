@@ -1,9 +1,9 @@
 "use client";
 
-import { Pagination } from "@/components/Pagination";
+import { Pagination } from "@/components/common/Pagination";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDate } from "@/lib/utils/formatDate";
-import type { Invoice } from "@/types/app";
+import type { Invoice } from "@/types/invoice";
 import { PaymentButton } from "./PaymentButton";
 
 type Props = {

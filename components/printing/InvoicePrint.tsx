@@ -13,7 +13,6 @@ export interface InvoiceItem {
 }
 
 type PrintableInvoice = Invoice & {
-    exam_date?: string | null;
     od_sph?: number | string | null;
     od_cyl?: number | string | null;
     od_axis?: number | string | null;

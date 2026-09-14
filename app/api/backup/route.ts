@@ -1,3 +1,4 @@
+import { todayISO } from "@/lib/utils/formatDate";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const payload = {
-      version: 4,
+      version: 5,
       exportedAt: new Date().toISOString(),
       settings: db.prepare("SELECT * FROM settings WHERE id=1").get() || null,
       customers: db.prepare("SELECT * FROM customers").all() || [],
@@ -16,6 +17,7 @@ export async function GET() {
       financialTransactions:
         db.prepare("SELECT * FROM financial_transactions").all() || [],
       cashClosures: db.prepare("SELECT * FROM cash_closures").all() || [],
+      financialPeriodClosures: db.prepare("SELECT * FROM financial_period_closures").all() || [],
       legacyExams: db.prepare("SELECT * FROM exams").all() || [],
     };
 
@@ -23,7 +25,7 @@ export async function GET() {
       status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
-        "Content-Disposition": `attachment; filename="optical-manager-backup-${new Date().toISOString().slice(0, 10)}.json"`,
+        "Content-Disposition": `attachment; filename="optical-manager-backup-${todayISO()}.json"`,
       },
     });
   } catch (error) {
@@ -53,7 +55,7 @@ export async function POST(req: Request) {
         : [];
 
     if (
-      ![1, 2, 3, 4].includes(Number(payload?.version)) ||
+      ![1, 2, 3, 4, 5].includes(Number(payload?.version)) ||
       !Array.isArray(payload?.customers) ||
       !Array.isArray(payload?.invoices) ||
       !Array.isArray(payload?.invoiceItems)
@@ -68,10 +70,16 @@ export async function POST(req: Request) {
       // تفريغ الجداول مع مراعاة العلاقات المفتاحية
       db.prepare("DELETE FROM financial_transactions").run();
       db.prepare("DELETE FROM cash_closures").run();
+      db.prepare("DELETE FROM financial_period_closures").run();
       db.prepare("DELETE FROM invoice_items").run();
       db.prepare("DELETE FROM invoices").run();
       db.prepare("DELETE FROM exams").run();
       db.prepare("DELETE FROM customers").run();
+
+      // إعادة إدراج إغلاقات الفترات (إن وجدت في النسخة الاحتياطية)
+      const periodClosures = Array.isArray(payload?.financialPeriodClosures) ? payload.financialPeriodClosures : [];
+      const periodStmt = db.prepare(`INSERT INTO financial_period_closures (id,period_type,period_key,from_date,to_date,opened_at,closed_at,report_printed_at,opening_balance,total_sales,total_collections,total_expenses,expected_cash,actual_cash,difference,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+      for (const x of periodClosures) periodStmt.run(x.id,x.period_type,x.period_key,x.from_date,x.to_date,x.opened_at||new Date().toISOString(),x.closed_at??null,x.report_printed_at??null,x.opening_balance||0,x.total_sales||0,x.total_collections||0,x.total_expenses||0,x.expected_cash||0,x.actual_cash??null,x.difference||0,x.status||"OPEN");
 
       // إعادة إدراج البيانات
       const customerStmt = db.prepare(

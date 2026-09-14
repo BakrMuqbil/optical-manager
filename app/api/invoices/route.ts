@@ -10,55 +10,29 @@ import {
   uid,
 } from "@/lib/db";
 import { isDayClosed, recalculateInvoiceBalance } from "@/lib/finance";
+import { todayISO } from "@/lib/utils/formatDate";
+import { listInvoices } from "@/lib/services/invoiceService";
 
 
 export const dynamic = "force-dynamic";
 
-function invoiceSelect() {
-  return `SELECT i.*, c.name customer_name, c.phone customer_phone,
-    c.address customer_address, c.customer_number
-    FROM invoices i JOIN customers c ON c.id=i.customer_id`;
-}
 
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
-  const q = params.get("q")?.trim() || "";
-  const status = params.get("status")?.trim() || "";
-  const statusSql = status === "DUE" ? "(i.status IN ('UNPAID','PARTIALLY_PAID'))" : "(?='' OR i.status=?)";
-  const from = params.get("from")?.trim() || "";
-  const to = params.get("to")?.trim() || "";
-  const like = `%${q}%`;
+  const result = listInvoices({
+    q: params.get("q") || "",
+    status: params.get("status") || "",
+    from: params.get("from") || "",
+    to: params.get("to") || "",
+  });
 
-  const rows = db.prepare(`${invoiceSelect()}
-    WHERE (?='' OR i.invoice_number LIKE ? OR c.name LIKE ? OR c.phone LIKE ?)
-      AND ${statusSql}
-      AND (?='' OR i.invoice_date>=?)
-      AND (?='' OR i.invoice_date<=?)
-    ORDER BY i.invoice_date DESC, i.created_at DESC`)
-    .all(...(status === "DUE" ? [q,like,like,like] : [q,like,like,like,status,status]), from, from, to, to);
-
-  const summary = db.prepare(`SELECT
-      COUNT(*) count,
-      COALESCE(SUM(i.total),0) total,
-      COALESCE(SUM(i.paid),0) paid,
-      COALESCE(SUM(i.remaining),0) remaining
-    FROM invoices i JOIN customers c ON c.id=i.customer_id
-    WHERE (?='' OR i.invoice_number LIKE ? OR c.name LIKE ? OR c.phone LIKE ?)
-      AND ${statusSql}
-      AND (?='' OR i.invoice_date>=?)
-      AND (?='' OR i.invoice_date<=?)`)
-    .get(...(status === "DUE" ? [q,like,like,like] : [q,like,like,like,status,status]), from, from, to, to) as {
-      count: number; total: number; paid: number; remaining: number;
-    };
-
-  return NextResponse.json({ success: true, data: rows, summary });
+  return NextResponse.json({ success: true, data: result.rows, summary: result.summary });
 }
 
 type InvoiceBody = {
   customerName?: string;
   customerPhone?: string;
   invoiceDate?: string;
-  examDate?: string;
   examiner?: string;
   odSph?: unknown; odCyl?: unknown; odAxis?: unknown; odAdd?: unknown;
   osSph?: unknown; osCyl?: unknown; osAxis?: unknown; osAdd?: unknown;
@@ -78,8 +52,7 @@ function cleanBody(b: InvoiceBody) {
   return {
     customerName: String(b.customerName ?? "").trim(),
     customerPhone: String(b.customerPhone ?? "").trim(),
-    invoiceDate: String(b.invoiceDate ?? "").trim() || new Date().toISOString().slice(0, 10),
-    examDate: String(b.examDate ?? "").trim() || null,
+    invoiceDate: String(b.invoiceDate ?? "").trim() || todayISO(),
     examiner: String(b.examiner ?? "").trim() || null,
     odSph: normalizeOptionalNumber(b.odSph), odCyl: normalizeOptionalNumber(b.odCyl), odAxis: normalizeOptionalInt(b.odAxis), odAdd: normalizeOptionalNumber(b.odAdd),
     osSph: normalizeOptionalNumber(b.osSph), osCyl: normalizeOptionalNumber(b.osCyl), osAxis: normalizeOptionalInt(b.osAxis), osAdd: normalizeOptionalNumber(b.osAdd),
@@ -185,7 +158,7 @@ export async function POST(req: Request) {
     }
 
     const id = uid("inv");
-    const invoiceNumber = nextInvoiceNumber();
+    const invoiceNumber = nextInvoiceNumber(clean.invoiceDate);
     const now = new Date().toISOString();
 
     const transaction = db.transaction(() => {
@@ -201,7 +174,6 @@ export async function POST(req: Request) {
             invoice_number,
             customer_id,
             invoice_date,
-            exam_date,
 
             od_sph,
             od_cyl,
@@ -239,7 +211,6 @@ export async function POST(req: Request) {
         invoiceNumber,
         customerId,
         clean.invoiceDate,
-        clean.examDate,
 
         clean.odSph,
         clean.odCyl,

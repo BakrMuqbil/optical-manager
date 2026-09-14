@@ -12,6 +12,7 @@ import {
   recalculateInvoiceBalance,
   synchronizeInvoicePayment,
 } from "@/lib/finance";
+import { todayISO } from "@/lib/utils/formatDate";
 
 export const dynamic = "force-dynamic";
 
@@ -148,7 +149,7 @@ export async function PUT(req: Request, { params }: Ctx) {
 
     const invoiceDate =
       String(b.invoiceDate || "").trim() ||
-      new Date().toISOString().slice(0, 10);
+      todayISO();
 
     /*
      * إذا حاول المستخدم نقل الفاتورة إلى يوم مغلق،
@@ -248,7 +249,6 @@ export async function PUT(req: Request, { params }: Ctx) {
         `UPDATE invoices
          SET customer_id=?,
              invoice_date=?,
-             exam_date=?,
              od_sph=?,
              od_cyl=?,
              od_axis=?,
@@ -270,7 +270,6 @@ export async function PUT(req: Request, { params }: Ctx) {
       ).run(
         customerId,
         invoiceDate,
-        String(b.examDate || "").trim() || null,
 
         normalizeOptionalNumber(b.odSph),
         normalizeOptionalNumber(b.odCyl),
@@ -402,17 +401,17 @@ export async function DELETE(_: Request, { params }: Ctx) {
         { status: 404 },
       );
     }
-
+/*
     if (invoice.status === "CANCELLED") {
       return NextResponse.json(
         {
           success: false,
-          error: "الفاتورة ملغاة بالفعل",
+          error: "الفاتورة هذي ملغاة بالفعل",
         },
         { status: 400 },
       );
     }
-
+*/
     if (isDayClosed(invoice.invoice_date)) {
       return NextResponse.json(
         {

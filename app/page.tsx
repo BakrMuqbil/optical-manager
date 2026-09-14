@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { db, getSettings } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import { PeriodClosureAlert } from "@/components/financial/PeriodClosureAlert";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,8 @@ export default function DashboardPage() {
                 </div>
             </header>
 
+            <PeriodClosureAlert />
+
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <Card
                     label="عدد الفواتير"
@@ -128,7 +131,7 @@ export default function DashboardPage() {
                     <ArrowLeft size={18} />
                 </Link>
                 <Link
-                    href="/account-statement"
+                    href="/invoices"
                     className="flex items-center justify-between rounded-2xl border p-5 font-bold shadow-sm transition-transform hover:-translate-y-0.5"
                     style={{
                         background: "var(--surface)",
@@ -138,7 +141,7 @@ export default function DashboardPage() {
                 >
                     <span className="flex items-center gap-3">
                         <FileText size={20} />
-                        فتح كشف الحساب
+                        فتح الفواتير
                     </span>
                     <ArrowLeft size={18} />
                 </Link>
@@ -170,11 +173,11 @@ export default function DashboardPage() {
                         </p>
                     </div>
                     <Link
-                        href="/account-statement"
+                        href="/invoices"
                         className="text-sm font-bold"
                         style={{ color: "var(--primary)" }}
                     >
-                        كشف الحساب
+                        الفواتير
                     </Link>
                 </div>
                 {recent.length ? (

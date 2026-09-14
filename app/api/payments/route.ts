@@ -1,3 +1,4 @@
+import { todayISO } from "@/lib/utils/formatDate";
 import { NextResponse } from "next/server";
 import {
   db,
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
 
     const date =
       String(b.date || "").trim() ||
-      new Date().toISOString().slice(0, 10);
+      todayISO();
 
     if (!invoiceId) {
       return NextResponse.json(

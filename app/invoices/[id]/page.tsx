@@ -88,7 +88,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     const json = await response.json();
     if (!response.ok) return alert(json.error || "تعذر حذف الفاتورة");
 
-    router.push("/account-statement");
+    router.push("/invoices");
   };
 
   if (error) {
@@ -109,11 +109,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     <main className="mx-auto max-w-5xl p-4 pt-20 md:p-8">
       <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-3">
         <Link
-          href="/account-statement"
+          href="/invoices"
           className="inline-flex items-center gap-2 text-sm font-bold text-slate-500"
         >
           <ArrowRight size={17} />
-          كشف الحساب
+          الفواتير
         </Link>
 
         <div className="flex flex-wrap gap-2">

@@ -16,7 +16,9 @@
 - Invoice payment flow: first payment creates `financial_transaction`
 - Invoice balance calculation: derived from `financial_transactions` via `recalculateInvoiceBalance()`
 - Invoice edit: `paid` field is read-only (display only)
-- Sidebar label: "الإدارة المالية" replaces "كشف الحساب"
+- Sidebar now exposes four main sections: dashboard, invoices, financial management, and settings.
+- Invoice history is integrated into financial management and is also available at `/invoices`.
+- Legacy `/account-statement` navigation redirects to `/invoices`.
 - Backup version bumped to 4
 - `PUT /api/invoices/[id]` validates day is not closed before editing
 - `POST /api/invoices/[id]/cancel` validates day is not closed

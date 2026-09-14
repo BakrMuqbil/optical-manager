@@ -3,20 +3,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
     Home,
-    ClipboardList,
     Settings,
+    FileText,
     Menu,
     X,
-    PlusCircle,
-    Wallet
+    Wallet,
+    BarChart3
 } from "lucide-react";
 import { useState } from "react";
 
 const links = [
     { href: "/", label: "لوحة التحكم", icon: Home },
-    { href: "/invoices/new", label: "فاتورة", icon: PlusCircle },
+    { href: "/invoices", label: "الفواتير", icon: FileText },
     { href: "/financial", label: "الإدارة المالية", icon: Wallet },
-    { href: "/account-statement", label: "كشف الحساب", icon: ClipboardList },
+    { href: "/reports", label: "التقارير", icon: BarChart3 },
     { href: "/settings", label: "الإعدادات", icon: Settings }
 ];
 

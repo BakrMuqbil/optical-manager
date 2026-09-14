@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { Eye, Printer } from "lucide-react";
 
-import { Pagination } from "@/components/Pagination";
+import { Pagination } from "@/components/common/Pagination";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDate } from "@/lib/utils/formatDate";
-import type { CashClosure } from "@/types/app";
+import type { CashClosure } from "@/types/financial";
 
 type PaginationState = {
     page: number;
