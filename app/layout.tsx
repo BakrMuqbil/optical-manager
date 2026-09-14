@@ -1,19 +1,24 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { TopNavigation } from '@/components/layout/TopNavigation'
 
 export const metadata: Metadata = {
   title: 'Optical Manager',
-  description: 'إدارة الفواتير ومحل البصريات',
+  description: 'نظام متكامل لإدارة محلات البصريات والعملاء والفواتير والحسابات والتقارير المالية',
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ar" dir="rtl">
       <body>
-        <div className="min-h-screen bg-slate-50 md:flex">
-          <Sidebar />
-          <main className="min-w-0 flex-1 md:mr-64">{children}</main>
+        <div className="min-h-screen bg-slate-50">
+          <TopNavigation />
+
+          <main className="min-w-0 flex-1 pt-20 print:pt-0">
+            {children}
+          </main>
         </div>
       </body>
     </html>

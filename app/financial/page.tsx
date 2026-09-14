@@ -1,11 +1,18 @@
 "use client";
-
 import { useState } from "react";
 import Link from "next/link";
-import { Lock, TrendingDown } from "lucide-react";
+import {
+  Lock,
+  
+  TrendingUp,
+  Wallet
+} from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Modal } from "@/components/ui/Modal";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import {
+  SummaryCard
+} from "@/components/ui/cards";
 import type { FinancialTransaction } from "@/types/financial";
 import { CashClosuresTable } from "./components/CashClosuresTable";
 import { ExpenseForm } from "./components/ExpenseForm";
@@ -21,17 +28,30 @@ import { PeriodClosureAlert } from "@/components/financial/PeriodClosureAlert";
 
 export default function FinancialPage() {
   const period = useFinancialPeriod();
-  const data = useFinancialData({ from: period.from, to: period.to });
-  const [activeTab, setActiveTab] = useState<FinancialTab>("overview");
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<FinancialTransaction | null>(null);
+  const data = useFinancialData({
+    from: period.from,
+    to: period.to
+  });
 
-  const currency = data.settings?.currency || "ر.ي";
+  const [activeTab, setActiveTab] =
+    useState<FinancialTab>("overview");
+
+  const [showExpenseForm, setShowExpenseForm] =
+    useState(false);
+
+  const [editingExpense, setEditingExpense] =
+    useState<FinancialTransaction | null>(null);
+
+  const currency =
+    data.settings?.currency || "ر.ي";
+
   const expectedCash = data.summary
     ? data.summary.collections - data.summary.expenses
     : 0;
 
-  const handlePeriodChange = (value: Parameters<typeof period.changePeriod>[0]) => {
+  const handlePeriodChange = (
+    value: Parameters<typeof period.changePeriod>[0]
+  ) => {
     period.changePeriod(value);
   };
 
@@ -41,31 +61,45 @@ export default function FinancialPage() {
     await data.refresh();
   };
 
-  const handleEditExpense = (transaction: FinancialTransaction) => {
+  const handleEditExpense = (
+    transaction: FinancialTransaction
+  ) => {
     if (data.isClosed) {
       alert("لا يمكن تعديل مصروف في يوم مغلق");
       return;
     }
+
     setEditingExpense(transaction);
     setShowExpenseForm(true);
   };
 
-  const handleDeleteExpense = async (transaction: FinancialTransaction) => {
+  const handleDeleteExpense = async (
+    transaction: FinancialTransaction
+  ) => {
     if (data.isClosed) {
       alert("لا يمكن حذف مصروف في يوم مغلق");
       return;
     }
-    if (!confirm("هل تريد حذف هذا المصروف نهائيًا؟")) return;
+
+    if (!confirm("هل تريد حذف هذا المصروف نهائيًا؟")) {
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/expenses?id=${encodeURIComponent(transaction.id)}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/expenses?id=${encodeURIComponent(transaction.id)}`,
+        {
+          method: "DELETE"
+        }
+      );
+
       const result = await response.json();
+
       if (!response.ok || !result.success) {
         alert(result.error || "تعذر حذف المصروف");
         return;
       }
+
       await data.refresh();
     } catch {
       alert("حدث خطأ أثناء حذف المصروف");
@@ -78,14 +112,23 @@ export default function FinancialPage() {
       description="ملخص يومي، حركات مالية، تحصيل الديون، وإغلاق الصندوق"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-      <PeriodClosureAlert />
+          <PeriodClosureAlert />
+
           {!data.isClosed && (
-            <button type="button" className="btn-secondary" onClick={() => setShowExpenseForm(true)}>
-              <TrendingDown size={17} />
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setShowExpenseForm(true)}
+            >
+              <TrendingUp size={17} />
               إضافة مصروف
             </button>
           )}
-          <Link href="/financial/closure" className="btn-primary">
+
+          <Link
+            href="/financial/closure"
+            className="btn-primary"
+          >
             <Lock size={17} />
             إغلاق الصندوق
           </Link>
@@ -128,63 +171,95 @@ export default function FinancialPage() {
           />
         </Modal>
 
-        <FinancialSummary summary={data.summary} currency={currency} />
+        <FinancialSummary
+          summary={data.summary}
+          currency={currency}
+        />
 
         {data.summary && (
-          <section className="surface-card">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <div className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>
-                  تحصيلات فواتير الفترة
-                </div>
-                <div className="mt-1 text-xl font-black" style={{ color: "var(--primary)" }}>
-                  {formatCurrency(data.summary.todayPaymentsOnNewInvoices, currency)}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>
-                  صافي حركة الصندوق
-                </div>
-                <div className="mt-1 text-xl font-black" style={{ color: "var(--primary)" }}>
-                  {formatCurrency(expectedCash, currency)}
-                </div>
-              </div>
-            </div>
-          </section>
+          <SummaryCard
+            title="ملخص حركة الصندوق"
+            items={[
+              {
+                label: "تحصيلات فواتير الفترة",
+                value: formatCurrency(
+                  data.summary.todayPaymentsOnNewInvoices,
+                  currency
+                ),
+                icon: Wallet,
+                tone: "primary"
+              },
+              {
+                label: "صافي حركة الصندوق",
+                value: formatCurrency(
+                  expectedCash,
+                  currency
+                ),
+                icon: TrendingUp,
+                tone:
+                  expectedCash >= 0
+                    ? "success"
+                    : "danger"
+              }
+            ]}
+          />
         )}
 
-        <div className="flex w-full gap-1 rounded-xl p-1 sm:w-fit" style={{ background: "var(--surface-muted)" }}>
-          {(["overview", "archive"] as const).map(value => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setActiveTab(value)}
-              className="flex-1 rounded-lg px-5 py-2 text-center text-sm font-bold transition-colors sm:flex-initial"
-              style={
-                activeTab === value
-                  ? {
-                      background: "var(--surface)",
-                      color: "var(--text-primary)",
-                      boxShadow: "var(--shadow-sm)",
-                    }
-                  : { color: "var(--text-muted)" }
-              }
-            >
-              {value === "overview" ? "نظرة عامة" : "السجلات"}
-            </button>
-          ))}
+        <div
+          className="flex w-full gap-1 rounded-xl p-1 sm:w-fit"
+          style={{
+            background: "var(--surface-muted)"
+          }}
+        >
+          {(["overview", "archive"] as const).map(
+            value => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setActiveTab(value)}
+                className="flex-1 rounded-lg px-5 py-2 text-center text-sm font-bold transition-colors sm:flex-initial"
+                style={
+                  activeTab === value
+                    ? {
+                        background:
+                          "var(--surface)",
+                        color:
+                          "var(--text-primary)",
+                        boxShadow:
+                          "var(--shadow-sm)"
+                      }
+                    : {
+                        color:
+                          "var(--text-muted)"
+                      }
+                }
+              >
+                {value === "overview"
+                  ? "نظرة عامة"
+                  : "السجلات"}
+              </button>
+            )
+          )}
         </div>
 
         {activeTab === "overview" ? (
           <>
             <FinancialTransactionsTable
               transactions={data.transactions}
-              pagination={data.transactionPagination}
-              loading={data.transactionsLoading || data.coreLoading}
-              onPageChange={data.loadTransactions}
+              pagination={
+                data.transactionPagination
+              }
+              loading={
+                data.transactionsLoading ||
+                data.coreLoading
+              }
+              onPageChange={
+                data.loadTransactions
+              }
               onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}
             />
+
             <OutstandingDebtsTable
               debts={data.debts}
               pagination={data.debtPagination}
@@ -197,11 +272,22 @@ export default function FinancialPage() {
           <>
             <CashClosuresTable
               closures={data.closures}
-              pagination={data.closurePagination}
-              loading={data.closuresLoading}
-              onPageChange={data.loadClosures}
+              pagination={
+                data.closurePagination
+              }
+              loading={
+                data.closuresLoading
+              }
+              onPageChange={
+                data.loadClosures
+              }
             />
-            <InvoiceHistory period={period.period} cursor={period.cursor} settings={data.settings} />
+
+            <InvoiceHistory
+              period={period.period}
+              cursor={period.cursor}
+              settings={data.settings}
+            />
           </>
         )}
       </div>

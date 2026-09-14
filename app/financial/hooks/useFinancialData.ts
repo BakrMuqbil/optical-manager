@@ -155,9 +155,9 @@ export function useFinancialData({ from, to }: UseFinancialDataOptions) {
     // Data fetching is intentionally triggered by the selected range.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCoreData();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    
     void loadTransactions(1);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    
     void loadDebts(1);
   }, [loadCoreData, loadTransactions, loadDebts]);
 

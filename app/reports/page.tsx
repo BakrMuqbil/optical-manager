@@ -1,4 +1,5 @@
 "use client";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -16,8 +17,10 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { todayISO } from "@/lib/utils/formatDate";
 import type { PeriodClosure, ReportData, ReportPeriod } from "@/lib/reports";
+import { StatCard, CardGrid, SummaryCard } from "@/components/ui/cards";
 
 type Type = "MONTH" | "YEAR";
+
 type ReportResponse = {
     period: ReportPeriod;
     report: ReportData;
@@ -32,9 +35,13 @@ const keyNow = (t: Type) => {
 };
 
 function shift(t: Type, k: string, d: number) {
-    if (t === "YEAR") return String(Number(k) + d);
+    if (t === "YEAR") {
+        return String(Number(k) + d);
+    }
+
     const [y, m] = k.split("-").map(Number);
     const x = new Date(y, m - 1 + d, 1);
+
     return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -47,31 +54,48 @@ export default function ReportsPage() {
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
 
-            const load = useCallback(
+    const load = useCallback(
         async (showLoading = true) => {
-            if (showLoading) setLoading(true);
+            if (showLoading) {
+                setLoading(true);
+            }
+
             try {
                 const r = await fetch(`/api/reports?type=${type}&key=${key}`, {
                     cache: "no-store"
                 });
-                const j: { success?: boolean; data?: ReportResponse } =
-                    await r.json();
+
+                const j: {
+                    success?: boolean;
+                    data?: ReportResponse;
+                } = await r.json();
+
                 if (j.success && j.data) {
                     setData(j.data);
+
                     setActual(
                         j.data.closure?.actual_cash != null
                             ? String(j.data.closure.actual_cash)
                             : ""
                     );
                 }
+
                 const l = await fetch(`/api/reports?action=list&type=${type}`, {
                     cache: "no-store"
                 });
-                const lj: { success?: boolean; data?: PeriodClosure[] } =
-                    await l.json();
-                if (lj.success) setClosures(lj.data ?? []);
+
+                const lj: {
+                    success?: boolean;
+                    data?: PeriodClosure[];
+                } = await l.json();
+
+                if (lj.success) {
+                    setClosures(lj.data ?? []);
+                }
             } finally {
-                if (showLoading) setLoading(false);
+                if (showLoading) {
+                    setLoading(false);
+                }
             }
         },
         [type, key]
@@ -80,7 +104,6 @@ export default function ReportsPage() {
     useEffect(() => {
         let ignore = false;
 
-        // استدعاء غير متزامن داخل الموقت لمنع تحديث الحالة اللحظي المباشر داخل الـ Effect
         const timer = setTimeout(() => {
             load(true).catch(() => {
                 if (ignore) return;
@@ -93,9 +116,8 @@ export default function ReportsPage() {
         };
     }, [load]);
 
-
-
     const currency = data?.currency ?? "ر.ي";
+
     const print = () =>
         window.open(
             `/reports/print?type=${type}&key=${encodeURIComponent(key)}`,
@@ -108,17 +130,23 @@ export default function ReportsPage() {
             alert("أدخل النقد الفعلي أولًا");
             return;
         }
+
         if (
             !confirm(
                 `تأكيد إغلاق ${type === "MONTH" ? "الشهر" : "السنة"} ${key}؟`
             )
-        )
+        ) {
             return;
+        }
+
         setBusy(true);
+
         try {
             const r = await fetch("/api/reports", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json"
+                },
                 body: JSON.stringify({
                     action: "close",
                     type,
@@ -127,11 +155,17 @@ export default function ReportsPage() {
                     openingBalance: data?.report.openingBalance
                 })
             });
-            const j: { success?: boolean; error?: string } = await r.json();
+
+            const j: {
+                success?: boolean;
+                error?: string;
+            } = await r.json();
+
             if (!r.ok || !j.success) {
                 alert(j.error ?? "تعذر الإغلاق");
                 return;
             }
+
             await load();
         } finally {
             setBusy(false);
@@ -147,7 +181,9 @@ export default function ReportsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div
                         className="flex rounded-xl border p-1"
-                        style={{ borderColor: "var(--border)" }}
+                        style={{
+                            borderColor: "var(--border)"
+                        }}
                     >
                         {(
                             [
@@ -168,13 +204,16 @@ export default function ReportsPage() {
                                               background: "var(--primary)",
                                               color: "var(--text-on-primary)"
                                           }
-                                        : { color: "var(--text-secondary)" }
+                                        : {
+                                              color: "var(--text-secondary)"
+                                          }
                                 }
                             >
                                 {l}
                             </button>
                         ))}
                     </div>
+
                     <Link href="/financial" className="btn-secondary">
                         الإدارة المالية
                     </Link>
@@ -189,13 +228,17 @@ export default function ReportsPage() {
                                     : "التقرير السنوي"}{" "}
                                 — {key}
                             </h2>
+
                             <p
                                 className="mt-1 text-sm"
-                                style={{ color: "var(--text-secondary)" }}
+                                style={{
+                                    color: "var(--text-secondary)"
+                                }}
                             >
                                 {data?.period.from} ← {data?.period.to}
                             </p>
                         </div>
+
                         <div className="flex gap-2">
                             <button
                                 className="btn-secondary"
@@ -204,6 +247,7 @@ export default function ReportsPage() {
                                 <ChevronRight size={16} />
                                 السابق
                             </button>
+
                             <button
                                 className="btn-secondary"
                                 onClick={() => setKey(shift(type, key, 1))}
@@ -222,97 +266,132 @@ export default function ReportsPage() {
                 ) : (
                     data && (
                         <>
-                            {/* شبكة البطائق المصممة بنفس أسلوب لوحة التحكم */}
-                            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                                <Card
+                            <CardGrid>
+                                <StatCard
                                     label="عدد الفواتير"
                                     value={String(data.report.invoiceCount)}
-                                    Icon={FileText}
-                                    tone="secondary"
+                                    icon={FileText}
+                                    tone="neutral"
                                 />
-                                <Card
+
+                                <StatCard
                                     label="إجمالي المبيعات"
                                     value={formatCurrency(
                                         data.report.sales,
                                         currency
                                     )}
-                                    Icon={TrendingUp}
+                                    icon={TrendingUp}
                                     tone="primary"
                                 />
-                                <Card
+
+                                <StatCard
                                     label="المقبوضات"
                                     value={formatCurrency(
                                         data.report.collections,
                                         currency
                                     )}
-                                    Icon={Wallet}
+                                    icon={Wallet}
                                     tone="success"
                                 />
-                                <Card
+
+                                <StatCard
                                     label="الديون المتبقية"
                                     value={formatCurrency(
                                         data.report.remainingDebts,
                                         currency
                                     )}
-                                    Icon={AlertCircle}
-                                    tone={data.report.remainingDebts > 0 ? "danger" : "success"}
+                                    icon={AlertCircle}
+                                    tone={
+                                        data.report.remainingDebts > 0
+                                            ? "danger"
+                                            : "success"
+                                    }
                                 />
-                                <Card
+
+                                <StatCard
                                     label="المصروفات"
                                     value={formatCurrency(
                                         data.report.expenses,
                                         currency
                                     )}
-                                    Icon={Receipt}
+                                    icon={Receipt}
                                     tone="warning"
                                 />
-                            </section>
+                            </CardGrid>
 
-                            <section className="surface-card p-5">
-                                <h3 className="mb-4 text-lg font-black">
-                                    ملخص الصندوق
-                                </h3>
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {[
-                                        [
-                                            "الرصيد الافتتاحي",
-                                            data.report.openingBalance
-                                        ],
-                                        [
-                                            "تحصيل ديون قديمة",
-                                            data.report.oldDebtCollection
-                                        ],
-                                        [
-                                            "دفعات فواتير الفترة",
-                                            data.report.newInvoicePayments
-                                        ],
-                                        [
-                                            "الرصيد المتوقع",
-                                            data.report.expectedCash
-                                        ],
-                                        [
-                                            "النقد الفعلي",
-                                            data.closure?.actual_cash
-                                        ],
-                                        ["الفرق", data.closure?.difference]
-                                    ].map(([l, v]) => (
-                                        <div
-                                            className="flex justify-between border-b pb-2"
-                                            key={String(l)}
-                                        >
-                                            <span>{l}</span>
-                                            <b>
-                                                {v == null
-                                                    ? "—"
-                                                    : formatCurrency(
-                                                          Number(v),
-                                                          currency
-                                                      )}
-                                            </b>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
+                            <SummaryCard
+                                title="ملخص الصندوق"
+                                items={[
+                                    {
+                                        label: "الرصيد الافتتاحي",
+                                        value: formatCurrency(
+                                            Number(data.report.openingBalance),
+                                            currency
+                                        ),
+                                        tone: "primary"
+                                    },
+                                    {
+                                        label: "تحصيل ديون قديمة",
+                                        value: formatCurrency(
+                                            Number(
+                                                data.report.oldDebtCollection
+                                            ),
+                                            currency
+                                        ),
+                                        tone: "info"
+                                    },
+                                    {
+                                        label: "دفعات فواتير الفترة",
+                                        value: formatCurrency(
+                                            Number(
+                                                data.report.newInvoicePayments
+                                            ),
+                                            currency
+                                        ),
+                                        tone: "success"
+                                    },
+                                    {
+                                        label: "الرصيد المتوقع",
+                                        value: formatCurrency(
+                                            Number(data.report.expectedCash),
+                                            currency
+                                        ),
+                                        tone: "primary"
+                                    },
+                                    {
+                                        label: "النقد الفعلي",
+                                        value:
+                                            data.closure?.actual_cash == null
+                                                ? "—"
+                                                : formatCurrency(
+                                                      Number(
+                                                          data.closure
+                                                              .actual_cash
+                                                      ),
+                                                      currency
+                                                  ),
+                                        tone: "info"
+                                    },
+                                    {
+                                        label: "الفرق",
+                                        value:
+                                            data.closure?.difference == null
+                                                ? "—"
+                                                : formatCurrency(
+                                                      Number(
+                                                          data.closure
+                                                              .difference
+                                                      ),
+                                                      currency
+                                                  ),
+                                        tone:
+                                            data.closure?.difference != null &&
+                                            Number(data.closure.difference) < 0
+                                                ? "danger"
+                                                : "success"
+                                    }
+                                ]}
+                            />
 
                             {type === "YEAR" && (
                                 <section className="surface-card overflow-hidden">
@@ -321,6 +400,7 @@ export default function ReportsPage() {
                                             تفصيل الأشهر
                                         </h3>
                                     </div>
+
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-sm">
                                             <thead>
@@ -332,27 +412,32 @@ export default function ReportsPage() {
                                                     <th>المصروفات</th>
                                                 </tr>
                                             </thead>
+
                                             <tbody>
                                                 {data.report.monthly.map(m => (
                                                     <tr key={m.key}>
                                                         <td className="font-bold">
                                                             {m.key}
                                                         </td>
+
                                                         <td>
                                                             {m.invoiceCount}
                                                         </td>
+
                                                         <td>
                                                             {formatCurrency(
                                                                 m.sales,
                                                                 currency
                                                             )}
                                                         </td>
+
                                                         <td>
                                                             {formatCurrency(
                                                                 m.collections,
                                                                 currency
                                                             )}
                                                         </td>
+
                                                         <td>
                                                             {formatCurrency(
                                                                 m.expenses,
@@ -376,6 +461,7 @@ export default function ReportsPage() {
                                         <FileText size={17} />
                                         إنشاء التقرير
                                     </button>
+
                                     <button
                                         className="btn-primary"
                                         onClick={print}
@@ -383,6 +469,7 @@ export default function ReportsPage() {
                                         <Printer size={17} />
                                         طباعة تقرير
                                     </button>
+
                                     {data.closure?.status === "CLOSED" ? (
                                         <span className="status-success">
                                             <Lock size={16} />
@@ -401,12 +488,14 @@ export default function ReportsPage() {
                                                 }
                                                 placeholder="النقد الفعلي عند الإغلاق"
                                             />
+
                                             <button
                                                 className="btn-secondary"
                                                 disabled={busy}
                                                 onClick={close}
                                             >
                                                 <Lock size={17} />
+
                                                 {busy
                                                     ? "جاري الإغلاق..."
                                                     : "إغلاق الصندوق"}
@@ -426,6 +515,7 @@ export default function ReportsPage() {
                             {type === "MONTH" ? "الأشهر" : "السنوات"}
                         </h3>
                     </div>
+
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
@@ -440,18 +530,21 @@ export default function ReportsPage() {
                                     <th>إجراء</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 {closures.map(c => (
                                     <tr key={c.id}>
                                         <td className="font-bold">
                                             {c.period_key}
                                         </td>
+
                                         <td>
                                             {formatCurrency(
                                                 Number(c.total_sales || 0),
                                                 currency
                                             )}
                                         </td>
+
                                         <td>
                                             {formatCurrency(
                                                 Number(
@@ -460,18 +553,21 @@ export default function ReportsPage() {
                                                 currency
                                             )}
                                         </td>
+
                                         <td>
                                             {formatCurrency(
                                                 Number(c.total_expenses || 0),
                                                 currency
                                             )}
                                         </td>
+
                                         <td>
                                             {formatCurrency(
                                                 Number(c.expected_cash || 0),
                                                 currency
                                             )}
                                         </td>
+
                                         <td>
                                             {c.actual_cash == null
                                                 ? "—"
@@ -480,6 +576,7 @@ export default function ReportsPage() {
                                                       currency
                                                   )}
                                         </td>
+
                                         <td>
                                             {c.status === "CLOSED" ? (
                                                 <span className="status-success">
@@ -491,6 +588,7 @@ export default function ReportsPage() {
                                                 </span>
                                             )}
                                         </td>
+
                                         <td>
                                             <button
                                                 className="btn-secondary px-3 py-1.5 text-xs"
@@ -510,73 +608,5 @@ export default function ReportsPage() {
                 </section>
             </div>
         </PageContainer>
-    );
-}
-
-{/* مكون البطاقة Card المأخوذ من تصميم لوحة التحكم */}
-function Card({
-    label,
-    value,
-    Icon,
-    tone = "secondary"
-}: {
-    label: string;
-    value: string;
-    Icon: React.ElementType;
-    tone?: "success" | "warning" | "danger" | "primary" | "secondary";
-}) {
-    // تحديد خلفية الأيقونة بناءً على النغمة (Tone)
-    const iconBgMap = {
-        success: "var(--success-soft)",
-        danger: "var(--danger-soft)",
-        warning: "rgba(245, 158, 11, 0.12)",
-        primary: "rgba(59, 130, 246, 0.12)",
-        secondary: "var(--surface-muted)"
-    };
-
-    // تحديد لون الأيقونة ولون النص بناءً على النغمة (Tone)
-    const colorMap = {
-        success: "var(--success)",
-        danger: "var(--danger)",
-        warning: "rgb(217, 119, 6)",
-        primary: "var(--primary)",
-        secondary: "var(--text-secondary)"
-    };
-
-    const iconBg = iconBgMap[tone] || iconBgMap.secondary;
-    const toneColor = colorMap[tone] || colorMap.secondary;
-    
-    // إذا كانت النغمة ثانوية (عادية) يظل الرقم باللون الرئيسي المعتاد للصوص
-    const valueColor = tone === "secondary" ? "var(--text-primary)" : toneColor;
-
-    return (
-        <div
-            className="rounded-2xl border p-5 shadow-sm transition-transform hover:-translate-y-0.5"
-            style={{
-                background: "var(--surface)",
-                borderColor: "var(--border)"
-            }}
-        >
-            <div className="flex items-center justify-between">
-                <span
-                    className="text-sm font-semibold"
-                    style={{ color: "var(--text-secondary)" }}
-                >
-                    {label}
-                </span>
-                <span
-                    className="rounded-xl p-2.5"
-                    style={{ background: iconBg, color: toneColor }}
-                >
-                    <Icon size={20} />
-                </span>
-            </div>
-            <div
-                className="mt-4 text-2xl font-black"
-                style={{ color: valueColor }}
-            >
-                {value}
-            </div>
-        </div>
     );
 }

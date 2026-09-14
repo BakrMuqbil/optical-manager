@@ -8,40 +8,37 @@
   /* -------------------------------------------------------
      Core
      ------------------------------------------------------- */
-  --background: #f1f7f7;
-  --foreground: #17324d;
+  --background: #f4f8fc;
+  --foreground: #172b4d;
 
   /* -------------------------------------------------------
-     Brand
+     Brand — Blue
      ------------------------------------------------------- */
-  --primary: #0f766e;
-  --primary-hover: #0d665f;
-  --primary-soft: #e6f5f3;
-  --primary-soft-hover: #d8efec;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --primary-soft-hover: #dbeafe;
 
   /* -------------------------------------------------------
      Surfaces
      ------------------------------------------------------- */
   --surface: #ffffff;
-
-  /* لون خلفية حقول الإدخال */
-  --surface-soft: #f3f9f8;
-
-  --surface-muted: #edf5f5;
+  --surface-soft: #f8fbff;
+  --surface-muted: #f1f5f9;
 
   /* -------------------------------------------------------
      Text
      ------------------------------------------------------- */
-  --text-primary: #17324d;
-  --text-secondary: #587080;
-  --text-muted: #8193a0;
+  --text-primary: #172b4d;
+  --text-secondary: #5b6b7f;
+  --text-muted: #8a98a8;
   --text-on-primary: #ffffff;
 
   /* -------------------------------------------------------
      Borders
      ------------------------------------------------------- */
-  --border: #d7e5e5;
-  --border-strong: #bfd4d4;
+  --border: #dbe4ee;
+  --border-strong: #c5d2e0;
 
   /* -------------------------------------------------------
      Status Colors
@@ -61,16 +58,30 @@
   /* -------------------------------------------------------
      Focus
      ------------------------------------------------------- */
-  --focus-ring: rgba(15, 118, 110, 0.12);
+  --focus-ring: rgba(37, 99, 235, 0.16);
 
   /* -------------------------------------------------------
      Elevation
      ------------------------------------------------------- */
   --shadow-sm:
-    0 1px 2px rgba(23, 50, 77, 0.05), 0 1px 1px rgba(23, 50, 77, 0.03);
+    0 1px 2px rgba(23, 43, 77, 0.04),
+    0 1px 1px rgba(23, 43, 77, 0.02);
+
   --shadow-md:
-    0 8px 20px -6px rgba(23, 50, 77, 0.1), 0 2px 6px rgba(23, 50, 77, 0.04);
-  --shadow-lg: 0 20px 40px -12px rgba(23, 50, 77, 0.16);
+    0 8px 20px -6px rgba(23, 43, 77, 0.10),
+    0 2px 6px rgba(23, 43, 77, 0.04);
+
+  --shadow-lg:
+    0 20px 40px -12px rgba(23, 43, 77, 0.14);
+
+  /* -------------------------------------------------------
+     Navigation
+     ------------------------------------------------------- */
+  --nav-background: rgba(255, 255, 255, 0.94);
+  --nav-border: rgba(219, 228, 238, 0.9);
+  --nav-shadow:
+    0 10px 30px -12px rgba(23, 43, 77, 0.18),
+    0 4px 10px rgba(23, 43, 77, 0.05);
 }
 
 /* =========================================================
@@ -121,7 +132,20 @@ input[type="number"] {
   color: var(--primary);
 }
 
-/* Calmer, consistent focus ring for accessibility across native controls */
+/* =========================================================
+   Navigation
+   ========================================================= */
+
+.top-navigation {
+  background: var(--nav-background);
+  border-color: var(--nav-border);
+  box-shadow: var(--nav-shadow);
+}
+
+/* =========================================================
+   Focus
+   ========================================================= */
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -132,7 +156,10 @@ textarea:focus-visible {
   border-radius: 0.75rem;
 }
 
-/* Thin, calm scrollbars for tables and long lists */
+/* =========================================================
+   Scrollbars
+   ========================================================= */
+
 .thin-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
@@ -168,11 +195,6 @@ textarea:focus-visible {
       duration-150
       ease-in-out;
 
-    /*
-     * التعديل الأساسي:
-     * حقول الإدخال أصبحت بلون مختلف قليلًا عن الـ Card الأبيض
-     * حتى تكون واضحة بصريًا بدون تغيير شكل الواجهة بالكامل.
-     */
     background: var(--surface-soft);
     border-color: var(--border);
     color: var(--text-primary);
@@ -186,16 +208,13 @@ textarea:focus-visible {
 
   .input:hover {
     background: var(--primary-soft);
-    border-color: #b9dcd7;
+    border-color: #bfdbfe;
   }
 
   .input:focus {
     background: var(--surface);
-
     border-color: var(--primary);
-
     outline: none;
-
     box-shadow: 0 0 0 4px var(--focus-ring);
   }
 
@@ -207,8 +226,9 @@ textarea:focus-visible {
     @apply mb-1.5
       block
       text-sm
-      font-bold
-      text-slate-700;
+      font-bold;
+
+    color: var(--text-primary);
   }
 
   /* -------------------------------------------------------
@@ -221,7 +241,6 @@ textarea:focus-visible {
       justify-center
       gap-2
       rounded-xl
-      bg-teal-700
       px-4
       py-2.5
       text-sm
@@ -230,15 +249,17 @@ textarea:focus-visible {
       transition-all
       duration-150
       ease-in-out
-      hover:bg-teal-800
       disabled:cursor-not-allowed
       disabled:opacity-50;
 
-    box-shadow: 0 1px 2px rgba(15, 118, 110, 0.15);
+    background: var(--primary);
+    color: var(--text-on-primary);
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.16);
   }
 
   .btn-primary:hover:not(:disabled) {
-    box-shadow: 0 4px 10px rgba(15, 118, 110, 0.18);
+    background: var(--primary-hover);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.20);
     transform: translateY(-1px);
   }
 
@@ -257,24 +278,25 @@ textarea:focus-visible {
       gap-2
       rounded-xl
       border
-      border-teal-100
       bg-white
       px-4
       py-2.5
       text-sm
       font-bold
-      text-teal-800
       transition-all
       duration-150
       ease-in-out
-      hover:border-teal-200
-      hover:bg-teal-50
       disabled:cursor-not-allowed
       disabled:opacity-50;
+
+    border-color: #bfdbfe;
+    color: #1d4ed8;
   }
 
   .btn-secondary:hover:not(:disabled) {
-    box-shadow: 0 3px 8px rgba(15, 118, 110, 0.08);
+    border-color: #93c5fd;
+    background: var(--primary-soft);
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.08);
   }
 
   /* -------------------------------------------------------
@@ -326,7 +348,7 @@ textarea:focus-visible {
   }
 
   /* -------------------------------------------------------
-     Success
+     Status
      ------------------------------------------------------- */
 
   .status-success {
@@ -342,10 +364,6 @@ textarea:focus-visible {
       text-emerald-700;
   }
 
-  /* -------------------------------------------------------
-     Warning
-     ------------------------------------------------------- */
-
   .status-warning {
     @apply inline-flex
       items-center
@@ -359,10 +377,6 @@ textarea:focus-visible {
       text-amber-700;
   }
 
-  /* -------------------------------------------------------
-     Danger
-     ------------------------------------------------------- */
-
   .status-danger {
     @apply inline-flex
       items-center
@@ -375,10 +389,6 @@ textarea:focus-visible {
       font-bold
       text-rose-700;
   }
-
-  /* -------------------------------------------------------
-     Info
-     ------------------------------------------------------- */
 
   .status-info {
     @apply inline-flex
@@ -399,6 +409,7 @@ textarea:focus-visible {
 
   .surface-card {
     @apply rounded-2xl border p-5;
+
     background: var(--surface);
     border-color: var(--border);
     box-shadow: var(--shadow-sm);
@@ -410,11 +421,13 @@ textarea:focus-visible {
 
   .data-table {
     @apply w-full text-sm;
+
     border-collapse: collapse;
   }
 
   .data-table thead th {
     @apply p-4 text-right text-xs font-black uppercase tracking-wide;
+
     background: var(--surface-muted);
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border);
@@ -422,6 +435,7 @@ textarea:focus-visible {
 
   .data-table tbody td {
     @apply p-4 align-middle;
+
     border-bottom: 1px solid var(--border);
   }
 
@@ -456,10 +470,6 @@ textarea:focus-visible {
   width: 210mm;
   min-height: 297mm;
 }
-
-/* ---------------------------------------------------------
-   Invoice Header
-   --------------------------------------------------------- */
 
 .invoice-head {
   display: grid;
@@ -520,10 +530,6 @@ textarea:focus-visible {
   padding: 4px;
 }
 
-/* ---------------------------------------------------------
-   Customer
-   --------------------------------------------------------- */
-
 .invoice-customer {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
@@ -534,10 +540,6 @@ textarea:focus-visible {
 
   font-size: 12px;
 }
-
-/* =========================================================
-   Prescription
-   ========================================================= */
 
 .prescription-sheet {
   margin-top: 12px;
@@ -610,10 +612,6 @@ textarea:focus-visible {
   border-top: 1px solid #64748b;
 }
 
-/* =========================================================
-   Invoice Items
-   ========================================================= */
-
 .invoice-items {
   margin-top: 12px;
 }
@@ -635,10 +633,6 @@ textarea:focus-visible {
   font-weight: 900;
   background: #f1f5f9;
 }
-
-/* =========================================================
-   Invoice Bottom
-   ========================================================= */
 
 .invoice-bottom {
   display: grid;
@@ -664,10 +658,6 @@ textarea:focus-visible {
   padding-bottom: 4px;
 }
 
-/* =========================================================
-   Totals
-   ========================================================= */
-
 .totals {
   display: grid;
   gap: 6px;
@@ -685,17 +675,13 @@ textarea:focus-visible {
 .totals .total-line {
   font-size: 14px;
 
-  border-top: 2px solid #0f766e;
-  border-bottom: 2px solid #0f766e;
+  border-top: 2px solid var(--primary);
+  border-bottom: 2px solid var(--primary);
 
   padding: 6px 0;
 
-  color: #0f4f4a;
+  color: #1e40af;
 }
-
-/* =========================================================
-   Invoice Notes
-   ========================================================= */
 
 .invoice-notes {
   border-top: 1px dotted #64748b;
@@ -706,14 +692,10 @@ textarea:focus-visible {
   font-size: 11px;
 }
 
-/* =========================================================
-   Invoice Footer
-   ========================================================= */
-
 .invoice-footer {
   text-align: center;
 
-  border-top: 2px solid #0f766e;
+  border-top: 2px solid var(--primary);
 
   margin-top: 16px;
   padding-top: 7px;
@@ -721,7 +703,7 @@ textarea:focus-visible {
   font-size: 11px;
   font-weight: 700;
 
-  color: #0f4f4a;
+  color: #1e40af;
 }
 
 /* =========================================================

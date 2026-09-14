@@ -10,7 +10,7 @@ import {
 import { db, getSettings } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { PeriodClosureAlert } from "@/components/financial/PeriodClosureAlert";
-
+import { StatCard, CardGrid } from "@/components/ui/cards";
 export const dynamic = "force-dynamic";
 
 export default function DashboardPage() {
@@ -90,30 +90,35 @@ export default function DashboardPage() {
 
             <PeriodClosureAlert />
 
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <Card
-                    label="عدد الفواتير"
-                    value={String(stats.count)}
-                    Icon={FileText}
-                />
-                <Card
-                    label="إجمالي المستحق"
-                    value={formatCurrency(stats.total, currency)}
-                    Icon={Wallet}
-                />
-                <Card
-                    label="إجمالي المدفوع"
-                    value={formatCurrency(stats.paid, currency)}
-                    Icon={CreditCard}
-                    tone="success"
-                />
-                <Card
-                    label="إجمالي المتبقي"
-                    value={formatCurrency(stats.remaining, currency)}
-                    Icon={AlertCircle}
-                    danger={stats.remaining > 0}
-                />
-            </section>
+            <CardGrid>
+    <StatCard
+        label="عدد الفواتير"
+        value={String(stats.count)}
+        icon={FileText}
+        tone="primary"
+    />
+
+    <StatCard
+        label="إجمالي المستحق"
+        value={formatCurrency(stats.total, currency)}
+        icon={Wallet}
+        tone="info"
+    />
+
+    <StatCard
+        label="إجمالي المدفوع"
+        value={formatCurrency(stats.paid, currency)}
+        icon={CreditCard}
+        tone="success"
+    />
+
+    <StatCard
+        label="إجمالي المتبقي"
+        value={formatCurrency(stats.remaining, currency)}
+        icon={AlertCircle}
+        tone={stats.remaining > 0 ? "danger" : "success"}
+    />
+</CardGrid>
 
             <section className="mt-6 grid gap-4 md:grid-cols-2">
                 <Link
@@ -244,58 +249,3 @@ export default function DashboardPage() {
     );
 }
 
-function Card({
-    label,
-    value,
-    Icon,
-    danger = false,
-    tone
-}: {
-    label: string;
-    value: string;
-    Icon: React.ElementType;
-    danger?: boolean;
-    tone?: "success";
-}) {
-    const iconBg = danger
-        ? "var(--danger-soft)"
-        : tone === "success"
-          ? "var(--success-soft)"
-          : "var(--surface-muted)";
-    const iconColor = danger
-        ? "var(--danger)"
-        : tone === "success"
-          ? "var(--success)"
-          : "var(--text-secondary)";
-    const valueColor = danger ? "var(--danger)" : "var(--text-primary)";
-    return (
-        <div
-            className="rounded-2xl border p-5 shadow-sm"
-            style={{
-                background: "var(--surface)",
-                borderColor: "var(--border)"
-            }}
-        >
-            <div className="flex items-center justify-between">
-                <span
-                    className="text-sm font-semibold"
-                    style={{ color: "var(--text-secondary)" }}
-                >
-                    {label}
-                </span>
-                <span
-                    className="rounded-xl p-2.5"
-                    style={{ background: iconBg, color: iconColor }}
-                >
-                    <Icon size={20} />
-                </span>
-            </div>
-            <div
-                className="mt-4 text-2xl font-black"
-                style={{ color: valueColor }}
-            >
-                {value}
-            </div>
-        </div>
-    );
-}
