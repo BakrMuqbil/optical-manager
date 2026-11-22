@@ -33,6 +33,7 @@ type InvoiceBody = {
   customerName?: string;
   customerPhone?: string;
   invoiceDate?: string;
+  examDate?: string;
   examiner?: string;
   odSph?: unknown; odCyl?: unknown; odAxis?: unknown; odAdd?: unknown;
   osSph?: unknown; osCyl?: unknown; osAxis?: unknown; osAdd?: unknown;
@@ -53,6 +54,7 @@ function cleanBody(b: InvoiceBody) {
     customerName: String(b.customerName ?? "").trim(),
     customerPhone: String(b.customerPhone ?? "").trim(),
     invoiceDate: String(b.invoiceDate ?? "").trim() || todayISO(),
+    examDate: String(b.examDate ?? "").trim() || null,
     examiner: String(b.examiner ?? "").trim() || null,
     odSph: normalizeOptionalNumber(b.odSph), odCyl: normalizeOptionalNumber(b.odCyl), odAxis: normalizeOptionalInt(b.odAxis), odAdd: normalizeOptionalNumber(b.odAdd),
     osSph: normalizeOptionalNumber(b.osSph), osCyl: normalizeOptionalNumber(b.osCyl), osAxis: normalizeOptionalInt(b.osAxis), osAdd: normalizeOptionalNumber(b.osAdd),
@@ -174,6 +176,7 @@ export async function POST(req: Request) {
             invoice_number,
             customer_id,
             invoice_date,
+            exam_date,
 
             od_sph,
             od_cyl,
@@ -211,6 +214,7 @@ export async function POST(req: Request) {
         invoiceNumber,
         customerId,
         clean.invoiceDate,
+        clean.examDate,
 
         clean.odSph,
         clean.odCyl,
